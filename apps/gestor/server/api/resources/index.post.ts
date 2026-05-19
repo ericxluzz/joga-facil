@@ -1,26 +1,23 @@
 import { getActiveTenant } from '../../utils/tenant';
 import { db } from '@agendaslim/db/client';
-import { blocks } from '@agendaslim/db/schema';
+import { resources } from '@agendaslim/db/schema';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
   if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
 
   const body = await readBody(event);
-  if (!body.startsAt || !body.endsAt) {
-    throw createError({ statusCode: 400, message: 'startsAt e endsAt obrigatórios' });
-  }
+  if (!body.name) throw createError({ statusCode: 400, message: 'name é obrigatório' });
 
-  const [block] = await db
-    .insert(blocks)
+  const [resource] = await db
+    .insert(resources)
     .values({
       tenantId: tenant.id,
-      resourceId: body.resourceId || null,
-      startsAt: new Date(body.startsAt),
-      endsAt: new Date(body.endsAt),
-      reason: body.reason || null,
+      name: body.name,
+      type: body.type || tenant.type,
+      photoUrl: body.photoUrl ?? null,
     })
     .returning();
 
-  return block;
+  return resource;
 });

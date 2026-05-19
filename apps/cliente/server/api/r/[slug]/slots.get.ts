@@ -1,81 +1,122 @@
-import { db } from '@agendaslim/db/client';
-import { bookings, tenants } from '@agendaslim/db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+// GET /api/r/[slug]/slots?date=YYYY-MM-DD&resourceId=...
+// Usa o algoritmo getAvailableSlots do @agendaslim/core com dados reais do DB.
 
-// GET /api/r/[slug]/slots?date=YYYY-MM-DD&resourceId=... — grade de slots real
+import { getTenantBySlug } from '../../../utils/tenant';
+import { db } from '@agendaslim/db/client';
+import { scheduleRules, blocks, bookings, services, resources } from '@agendaslim/db/schema';
+import { and, eq, gte, lte, or, isNull, inArray } from 'drizzle-orm';
+import { getAvailableSlots } from '@agendaslim/core/slots';
+
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug');
+  if (!slug) throw createError({ statusCode: 400, message: 'slug obrigatório' });
+
   const query = getQuery(event);
-  const date = query.date as string | undefined;
+  const date = (query.date as string) || new Date().toISOString().substring(0, 10);
   const resourceId = query.resourceId as string | undefined;
 
-  if (!slug || !date || !resourceId) {
-    throw createError({ statusCode: 400, message: 'slug, date e resourceId são obrigatórios' });
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
+
+  // Resolve resource (1º ativo se não especificado)
+  let targetResourceId = resourceId;
+  if (!targetResourceId) {
+    const [first] = await db
+      .select({ id: resources.id })
+      .from(resources)
+      .where(and(eq(resources.tenantId, tenant.id), eq(resources.active, true)))
+      .limit(1);
+    if (!first) return { slug, date, resourceId: null, slots: [] };
+    targetResourceId = first.id;
   }
 
-  const [tenant] = await db
+  // Serviço padrão (primeiro serviço ativo deste tenant, com escopo geral ou no resource)
+  const svcList = await db
     .select()
-    .from(tenants)
-    .where(eq(tenants.slug, slug))
-    .limit(1);
+    .from(services)
+    .where(and(eq(services.tenantId, tenant.id), eq(services.active, true)));
+  const service =
+    svcList.find((s) => s.resourceId === targetResourceId) ||
+    svcList.find((s) => s.resourceId === null) ||
+    svcList[0];
+  if (!service) return { slug, date, resourceId: targetResourceId, slots: [] };
 
-  if (!tenant) {
-    throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
-  }
+  // Regras de horário do resource (todas as weekdays)
+  const rules = await db
+    .select({
+      weekday: scheduleRules.weekday,
+      startTime: scheduleRules.startTime,
+      endTime: scheduleRules.endTime,
+      priceModifier: scheduleRules.priceModifier,
+    })
+    .from(scheduleRules)
+    .where(and(eq(scheduleRules.resourceId, targetResourceId), eq(scheduleRules.active, true)));
 
-  const startOfDay = new Date(`${date}T00:00:00`);
-  const endOfDay = new Date(`${date}T23:59:59`);
+  // Bloqueios do dia (do resource ou globais)
+  const dayStart = new Date(`${date}T00:00:00`);
+  const dayEnd = new Date(`${date}T23:59:59`);
+  const blocksList = await db
+    .select({ startsAt: blocks.startsAt, endsAt: blocks.endsAt })
+    .from(blocks)
+    .where(
+      and(
+        eq(blocks.tenantId, tenant.id),
+        or(eq(blocks.resourceId, targetResourceId), isNull(blocks.resourceId)),
+        gte(blocks.endsAt, dayStart),
+        lte(blocks.startsAt, dayEnd),
+      ),
+    );
 
-  const activeBookings = await db
-    .select({ startsAt: bookings.startsAt })
+  // Reservas existentes que travam slot (hold/pending/confirmed)
+  const existingBookings = await db
+    .select({ startsAt: bookings.startsAt, endsAt: bookings.endsAt })
     .from(bookings)
     .where(
       and(
-        eq(bookings.resourceId, resourceId),
-        gte(bookings.startsAt, startOfDay),
-        lte(bookings.startsAt, endOfDay),
-        sql`status IN ('hold', 'pending_approval', 'confirmed')`
-      )
+        eq(bookings.resourceId, targetResourceId),
+        inArray(bookings.status, ['hold', 'pending_approval', 'confirmed']),
+        gte(bookings.endsAt, dayStart),
+        lte(bookings.startsAt, dayEnd),
+      ),
     );
 
-  const bookedTimes = new Set(
-    activeBookings.map(b => {
-      // Formata startsAt em HH:MM
-      const hours = String(b.startsAt.getHours()).padStart(2, '0');
-      const minutes = String(b.startsAt.getMinutes()).padStart(2, '0');
-      return `${hours}:${minutes}`;
-    })
-  );
+  // Roda o algoritmo do core
+  const settings = (tenant.settings as any) || {};
+  const slots = getAvailableSlots({
+    date,
+    timezone: tenant.timezone,
+    durationMinutes: service.durationMinutes,
+    basePriceCents: service.basePriceCents,
+    rules: rules.map((r) => ({
+      weekday: r.weekday,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      priceModifier: parseFloat(r.priceModifier),
+    })),
+    blocks: blocksList,
+    existingBookings,
+    minAdvanceMinutes: settings.minAdvanceMinutes ?? 60,
+    maxAdvanceDays: settings.maxAdvanceDays ?? 30,
+  });
 
-  const isWeekend = isWeekendDay(date);
-  const startHour = isWeekend ? 8 : 18;
-  const endHour = 23;
-  const peakHours = [18, 19, 20, 21];
-
-  const slots = [];
-  for (let h = startHour; h < endHour; h++) {
-    const time = `${String(h).padStart(2, '0')}:00`;
-    const isPeak = peakHours.includes(h);
-    const available = !bookedTimes.has(time);
-
-    slots.push({
-      id: `${date}-${resourceId}-${time}`,
-      resourceId,
-      time,
-      startsAt: `${date}T${time}:00`,
-      endsAt: `${date}T${String(h + 1).padStart(2, '0')}:00:00`,
-      durationMinutes: 60,
-      priceCents: isPeak ? 13000 : 10000,
-      isPeak,
-      available,
-    });
-  }
-
-  return { slug, date, resourceId, slots };
+  // Mapeia pro formato que o frontend espera
+  return {
+    slug,
+    date,
+    resourceId: targetResourceId,
+    serviceId: service.id,
+    slots: slots.map((s) => ({
+      id: `${date}-${targetResourceId}-${s.startsAt.toISOString()}`,
+      resourceId: targetResourceId,
+      serviceId: service.id,
+      time: s.startsAt.toISOString().substring(11, 16),
+      startsAt: s.startsAt.toISOString(),
+      endsAt: s.endsAt.toISOString(),
+      durationMinutes: service.durationMinutes,
+      priceCents: s.priceCents,
+      isPeak: s.priceCents > service.basePriceCents,
+      available: s.available,
+      reason: s.reason,
+    })),
+  };
 });
-
-function isWeekendDay(date: string): boolean {
-  const d = new Date(date);
-  const day = d.getDay();
-  return day === 0 || day === 6;
-}

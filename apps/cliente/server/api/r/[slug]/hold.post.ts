@@ -1,80 +1,60 @@
-import { db } from '@agendaslim/db/client';
-import { bookings, tenants, services } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+// POST /api/r/[slug]/hold — cria hold real no DB usando o core createHold
+import { getTenantBySlug } from '../../../utils/tenant';
+import { makeDbBookingAdapter } from '../../../utils/booking-adapter';
+import { createHold } from '@agendaslim/core/bookings';
 
-// POST /api/r/[slug]/hold — cria hold de carrinho
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug');
+  if (!slug) throw createError({ statusCode: 400, message: 'slug obrigatório' });
+
+  const tenant = await getTenantBySlug(slug);
+  if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
+
   const body = await readBody(event);
-
-  if (!slug || !body.slots || body.slots.length === 0) {
-    throw createError({ statusCode: 400, message: 'Faltam parâmetros obrigatórios' });
+  if (!body.customer?.name || !body.customer?.phone || !Array.isArray(body.slots) || body.slots.length === 0) {
+    throw createError({ statusCode: 400, message: 'customer e slots obrigatórios' });
   }
 
-  const [tenant] = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.slug, slug))
-    .limit(1);
+  // Pega o serviceId do primeiro slot (todos do mesmo recurso/serviço no MVP)
+  const firstSlot = body.slots[0];
+  const serviceId = firstSlot.serviceId;
+  if (!serviceId) throw createError({ statusCode: 400, message: 'serviceId obrigatório no slot' });
 
-  if (!tenant) {
-    throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
-  }
-
-  const tenantServices = await db
-    .select()
-    .from(services)
-    .where(eq(services.tenantId, tenant.id))
-    .limit(1);
-
-  if (tenantServices.length === 0) {
-    throw createError({ statusCode: 500, message: 'Nenhum serviço configurado neste estabelecimento' });
-  }
-  const serviceId = tenantServices[0].id;
-
-  const holdMinutes = tenant.settings.holdMinutes || 10;
-  const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000);
-
-  const insertedBookings: any[] = [];
+  const adapter = makeDbBookingAdapter(serviceId);
+  const settings = (tenant.settings as any) || {};
+  const holdMinutes = settings.holdMinutes ?? 10;
 
   try {
-    await db.transaction(async (tx) => {
-      for (const slot of body.slots) {
-        const startsAt = new Date(slot.startsAt);
-        const endsAt = new Date(slot.endsAt);
+    const result = await createHold(
+      adapter,
+      {
+        tenantId: tenant.id,
+        customerName: body.customer.name,
+        customerPhone: body.customer.phone,
+        customerEmail: body.customer.email,
+        items: body.slots.map((s: any) => ({
+          resourceId: s.resourceId,
+          serviceId: s.serviceId || serviceId,
+          startsAt: new Date(s.startsAt),
+          endsAt: new Date(s.endsAt),
+          priceCents: s.priceCents,
+        })),
+        paymentMethod: body.method || 'pix_upfront',
+        customerNotes: body.notes,
+      },
+      holdMinutes,
+    );
 
-        const [newBooking] = await tx
-          .insert(bookings)
-          .values({
-            tenantId: tenant.id,
-            resourceId: slot.resourceId,
-            serviceId,
-            customerName: body.customerName || 'Cliente PWA',
-            customerPhone: body.customerPhone || '000000000',
-            startsAt,
-            endsAt,
-            totalCents: slot.priceCents || 10000,
-            status: 'hold',
-            paymentMethod: body.paymentMethod === 'pay_on_site' ? 'pay_on_site' : 'pix_upfront',
-            expiresAt,
-          })
-          .returning();
-
-        insertedBookings.push(newBooking);
-      }
-    });
+    return {
+      holdId: result.bookingIds[0], // representativo
+      bookingIds: result.bookingIds,
+      expiresAt: result.expiresAt.toISOString(),
+      totalCents: result.totalCents,
+    };
   } catch (err: any) {
-    console.error('Hold creation error:', err);
-    throw createError({ statusCode: 409, message: 'Um ou mais horários selecionados já foram reservados. Escolha outros horários.' });
+    if (err?.code === 'SLOT_UNAVAILABLE') {
+      throw createError({ statusCode: 409, message: err.message });
+    }
+    throw err;
   }
-
-  const totalCents = insertedBookings.reduce((sum, b) => sum + b.totalCents, 0);
-
-  return {
-    holdId: `hold-${Date.now()}`,
-    slug,
-    bookingIds: insertedBookings.map(b => b.id),
-    expiresAt: expiresAt.toISOString(),
-    totalCents,
-  };
 });

@@ -1,7 +1,0 @@
-export const mockBookings = [
-  { id: '1', resourceId: 'r1', resourceName: 'Society Principal', customerName: 'João Silva', customerPhone: '(11) 99999-9999', serviceName: '1h Society', date: new Date().toISOString().split('T')[0], startTime: '19:00', endTime: '20:00', status: 'confirmed', priceCents: 15000 },
-  { id: '2', resourceId: 'r2', resourceName: 'Society Coberta', customerName: 'Carlos Eduardo', customerPhone: '(11) 98888-8888', serviceName: '1.5h Society', date: new Date().toISOString().split('T')[0], startTime: '20:00', endTime: '21:30', status: 'pending_approval', priceCents: 18000 },
-  { id: '3', resourceId: 'r3', resourceName: 'Padel 1', customerName: 'Time do Bairro', customerPhone: '(11) 97777-7777', serviceName: '1h Padel', date: new Date().toISOString().split('T')[0], startTime: '18:30', endTime: '19:30', status: 'confirmed', priceCents: 10000 },
-  { id: '4', resourceId: 'r1', resourceName: 'Society Principal', customerName: 'Felipe Santos', customerPhone: '(11) 96666-6666', serviceName: '1h Society', date: new Date().toISOString().split('T')[0], startTime: '21:00', endTime: '22:00', status: 'hold', priceCents: 15000 },
-  { id: '5', resourceId: 'r2', resourceName: 'Society Coberta', customerName: 'Lucas Moura', customerPhone: '(11) 95555-5555', serviceName: '1h Society', date: new Date().toISOString().split('T')[0], startTime: '18:00', endTime: '19:00', status: 'pending_approval', priceCents: 15000 },
-];
