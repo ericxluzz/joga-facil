@@ -1,0 +1,31 @@
+{
+  "name": "agenda-slim",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agenda-Slim — Plataforma de agendamento e pagamento PIX para quadras esportivas",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @agendaslim/db generate",
+    "db:migrate": "pnpm --filter @agendaslim/db migrate",
+    "db:studio": "pnpm --filter @agendaslim/db studio",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.0",
+    "eslint": "^9.16.0"
+  },
+  "packageManager": "pnpm@9.14.4",
+  "engines": {
+    "node": ">=20"
+  }
+}

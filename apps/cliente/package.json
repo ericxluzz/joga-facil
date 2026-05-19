@@ -1,0 +1,35 @@
+{
+  "name": "@agendaslim/cliente",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3001",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck",
+    "clean": "rm -rf .nuxt .output node_modules"
+  },
+  "dependencies": {
+    "@agendaslim/core": "workspace:*",
+    "@agendaslim/db": "workspace:*",
+    "@agendaslim/ui": "workspace:*",
+    "@pinia/nuxt": "^0.9.0",
+    "@primevue/nuxt-module": "^4.2.4",
+    "@vite-pwa/nuxt": "^0.10.6",
+    "@vueuse/nuxt": "^12.0.0",
+    "@vueuse/core": "^12.0.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "drizzle-orm": "^0.36.4",
+    "nuxt": "^3.14.1592",
+    "pinia": "^2.3.0",
+    "primevue": "^4.2.4",
+    "vue": "^3.5.13",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}

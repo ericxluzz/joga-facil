@@ -1,0 +1,69 @@
+/* Estilos globais do Agenda-Slim */
+@import 'primeicons/primeicons.css';
+
+:root {
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Customização dos Inputs PrimeVue para deixá-los robustos e modernos */
+.p-inputtext {
+  font-family: var(--font-sans) !important;
+  padding: 0.65rem 0.85rem !important; /* Mais fino e elegante */
+  border-radius: 8px !important;
+  border: 1px solid var(--p-surface-300) !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease;
+  background-color: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+}
+
+.p-inputtext:hover {
+  border-color: var(--p-primary-400) !important;
+}
+
+.p-inputtext:focus {
+  border-color: var(--p-primary-500) !important;
+  box-shadow: 0 0 0 3px var(--p-primary-100) !important;
+  outline: none;
+}
+
+/* Ajustes específicos para Password do PrimeVue */
+.p-password {
+  width: 100%;
+}
+
+.p-password input {
+  width: 100%;
+}
+
+/* Ajustes de tamanho nos botões para acompanhar o input mais encorpado */
+.p-button {
+  font-family: var(--font-sans) !important;
+  font-size: 0.95rem !important;
+  padding: 0.65rem 1.25rem !important; /* Mais elegante */
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+
