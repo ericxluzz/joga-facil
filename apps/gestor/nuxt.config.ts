@@ -5,9 +5,28 @@ import path from 'path';
 // Carrega o .env explicitamente do diretório correto
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+/** Raiz do monorepo (apps/gestor → ../..) — usado pelo Nitro na Vercel */
+const monorepoRoot = path.resolve(__dirname, '../..');
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
+
+  /**
+   * Preset Vercel + saída na raiz do repo (Turbo/monorepo).
+   * Sem isso o Nitro gera `.vercel/output` dentro de apps/gestor e o deploy falha
+   * mesmo com o build “verde”. Ref.: nitro deploy vercel + monorepo output dir.
+   */
+  nitro: {
+    preset: 'vercel',
+    ...(process.env.VERCEL
+      ? {
+          output: {
+            dir: path.join(monorepoRoot, '.vercel/output'),
+          },
+        }
+      : {}),
+  },
 
   modules: [
     '@nuxtjs/supabase',

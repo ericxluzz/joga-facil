@@ -12,8 +12,27 @@ Plataforma SaaS de agendamento e pagamento PIX para quadras esportivas, clínica
 - **Cache/Hold:** Upstash Redis
 - **Jobs:** Trigger.dev
 - **PIX:** AbacatePay
-- **Hosting:** Cloudflare Pages
+- **Hosting:** Cloudflare Pages · também compatível com **Vercel** (gestor — ver secção abaixo)
 - **Monorepo:** Turborepo + pnpm workspaces
+
+## Deploy na Vercel (app **gestor**)
+
+O repositório é um monorepo; existe `vercel.json` na raiz para:
+
+1. **`pnpm turbo run build --filter=@agendaslim/gestor...`** — compila só o gestor e dependências workspace (evita falhas no app cliente/PWA no mesmo pipeline).
+2. **Nitro** — em `apps/gestor/nuxt.config.ts`, no ambiente Vercel (`VERCEL=1`), a saída vai para **`.vercel/output` na raiz**, onde o runtime da Vercel espera encontrar o Build Output.
+
+Na UI da Vercel: **Root Directory** `./` (raiz do repo), framework pode ficar **Other** — as overrides vêm do `vercel.json`.
+
+**Variáveis de ambiente** (Project → Settings → Environment Variables): para uma primeira versão igual ao ambiente local mock, replica do `.env.example` pelo menos:
+
+| Variável | Notas |
+|---|---|
+| `MOCK_AUTH` | `1` permite rodar sem fluxo Supabase real no gestor |
+| `NUXT_PUBLIC_APP_URL` | URL do deploy, ex.: `https://teu-projeto.vercel.app` |
+| `NUXT_PUBLIC_CLIENT_URL` | URL do app cliente quando existir deploy separado ou placeholder |
+
+Para auth Supabase real, configura também `SUPABASE_URL`, `SUPABASE_ANON_KEY` (ou chaves que o `@nuxtjs/supabase` espera), `DATABASE_URL`, etc., conforme `.env.example`.
 
 ## Estrutura
 
