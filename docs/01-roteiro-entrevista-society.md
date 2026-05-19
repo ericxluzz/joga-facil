@@ -11,7 +11,7 @@
 
 **Apresentação curta (30s):**
 
-> "Boa tarde, sou o Eric, da Fraktal. Estou estudando como melhorar a vida de quem tem society — desde o dono que toca tudo no WhatsApp até o cara que quer reservar uma quadra. Posso te tomar 15 minutos pra entender como funciona aqui? Não vou te vender nada hoje, só quero ouvir como vocês operam."
+> "Boa tarde, tudo bem? Eu sou **ericxluzz** — é assim que me apresento, pode me chamar assim mesmo. Estou pesquisando o dia a dia de quem tem society: tanto quem opera tudo pelo WhatsApp quanto quem só quer garantir quadra sem dor de cabeça. Posso te tomar uns 15 minutos para você me contar como vocês fazem aqui hoje? Não é papo de venda, só quero ouvir como vocês operam."
 
 **Regra de ouro:** mais escutar que falar. Se ele responder em 2 frases, faz uma pergunta de "como assim?" pra ele desenrolar. Tudo de "ah, mas o caderninho funciona" é ouro — anota literal.
 

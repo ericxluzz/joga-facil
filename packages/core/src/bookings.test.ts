@@ -38,7 +38,7 @@ describe('createHold', () => {
       adapter,
       {
         tenantId,
-        customerName: 'Eric',
+        customerName: 'Cliente',
         customerPhone: '51999999999',
         items: [
           {
@@ -66,7 +66,7 @@ describe('createHold', () => {
         adapter,
         {
           tenantId,
-          customerName: 'Eric',
+          customerName: 'Cliente',
           customerPhone: '51999999999',
           items: [
             {

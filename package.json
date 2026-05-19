@@ -2,6 +2,7 @@
   "name": "agenda-slim",
   "version": "0.1.0",
   "private": true,
+  "author": "ericxluzz",
   "description": "Agenda-Slim — Plataforma de agendamento e pagamento PIX para quadras esportivas",
   "workspaces": [
     "apps/*",

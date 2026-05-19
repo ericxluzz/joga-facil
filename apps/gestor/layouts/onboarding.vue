@@ -23,7 +23,7 @@
 
     <!-- Rodapé -->
     <footer class="onboarding-footer">
-      <span>© 2026 Agenda-Slim · Fraktal Softwares</span>
+      <span>© 2026 Agenda-Slim · ericxluzz</span>
     </footer>
   </div>
 </template>

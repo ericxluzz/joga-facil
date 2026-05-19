@@ -6,7 +6,7 @@ Plataforma SaaS de agendamento e pagamento PIX para quadras esportivas, clínica
 
 ## Stack
 
-- **Frontend:** Nuxt 3 + Vue 3 + TypeScript + PrimeVue 4 + Tema Aura (Fraktal)
+- **Frontend:** Nuxt 3 + Vue 3 + TypeScript + PrimeVue 4 + Tema Aura
 - **Backend:** Nuxt server routes (Nitro) + Drizzle ORM
 - **Banco:** Postgres via Supabase (Row Level Security)
 - **Cache/Hold:** Upstash Redis
@@ -130,4 +130,4 @@ Veja `Agenda-Slim-Documentacao-Completa.docx` na raiz pro detalhamento completo 
 
 ## Licença
 
-Proprietária · Fraktal Softwares · Eric Luz (eric.luz@fraktalsoftwares.com.br)
+Proprietária · [ericxluzz](https://github.com/ericxluzz)

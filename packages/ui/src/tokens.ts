@@ -1,5 +1,5 @@
 // Design tokens do Agenda-Slim
-// Paleta inspirada no tema Aura da Fraktal com identidade própria do Agenda-Slim:
+// Paleta inspirada no tema Aura (PrimeVue) com identidade própria do Agenda-Slim:
 // primary verde (PIX brasileiro), surface neutro frio, accent laranja (CTA)
 
 export const tokens = {
