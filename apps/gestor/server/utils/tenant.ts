@@ -32,7 +32,12 @@ export async function getActiveTenant(event: H3Event) {
     return newTenant;
   }
 
-  const user = await serverSupabaseUser(event);
+  let user;
+  try {
+    user = await serverSupabaseUser(event);
+  } catch {
+    throw createError({ statusCode: 503, message: 'Auth indisponível — verifique SUPABASE_URL e SUPABASE_KEY na Vercel' });
+  }
   if (!user) {
     throw createError({ statusCode: 401, message: 'Não autorizado' });
   }

@@ -2,30 +2,21 @@ import { agendaSlimPreset } from '@agendaslim/ui/preset';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Carrega o .env explicitamente do diretório correto
+// Carrega .env local (apps/gestor ou raiz do monorepo) — na Vercel as vars vêm do painel
 dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-/** Raiz do monorepo (apps/gestor → ../..) — usado pelo Nitro na Vercel */
-const monorepoRoot = path.resolve(__dirname, '../..');
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey =
+  process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
 
-  /**
-   * Preset Vercel + saída na raiz do repo (Turbo/monorepo).
-   * Sem isso o Nitro gera `.vercel/output` dentro de apps/gestor e o deploy falha
-   * mesmo com o build “verde”. Ref.: nitro deploy vercel + monorepo output dir.
-   */
+  // Nitro gera apps/gestor/.vercel/output (ver outputDirectory no vercel.json da raiz)
   nitro: {
     preset: 'vercel',
-    ...(process.env.VERCEL
-      ? {
-          output: {
-            dir: path.join(monorepoRoot, '.vercel/output'),
-          },
-        }
-      : {}),
   },
 
   modules: [
@@ -50,7 +41,8 @@ export default defineNuxtConfig({
   },
 
   supabase: {
-    // Configuração via .env (SUPABASE_URL, SUPABASE_KEY)
+    url: supabaseUrl,
+    key: supabaseKey,
     redirectOptions: {
       login: '/login',
       callback: '/auth/callback',

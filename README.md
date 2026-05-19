@@ -22,17 +22,23 @@ O repositório é um monorepo; existe `vercel.json` na raiz para:
 1. **`pnpm turbo run build --filter=@agendaslim/gestor...`** — compila só o gestor e dependências workspace (evita falhas no app cliente/PWA no mesmo pipeline).
 2. **Nitro** — em `apps/gestor/nuxt.config.ts`, no ambiente Vercel (`VERCEL=1`), a saída vai para **`.vercel/output` na raiz**, onde o runtime da Vercel espera encontrar o Build Output.
 
-Na UI da Vercel: **Root Directory** `./` (raiz do repo), framework pode ficar **Other** — as overrides vêm do `vercel.json`.
+Na UI da Vercel: **Root Directory** `./` (raiz do repo). O `vercel.json` define build e `outputDirectory: apps/gestor/.vercel/output`.
 
-**Variáveis de ambiente** (Project → Settings → Environment Variables): para uma primeira versão igual ao ambiente local mock, replica do `.env.example` pelo menos:
+**Variáveis obrigatórias** (Settings → Environment Variables):
 
-| Variável | Notas |
+| Variável | Valor |
 |---|---|
-| `MOCK_AUTH` | `1` permite rodar sem fluxo Supabase real no gestor |
-| `NUXT_PUBLIC_APP_URL` | URL do deploy, ex.: `https://teu-projeto.vercel.app` |
-| `NUXT_PUBLIC_CLIENT_URL` | URL do app cliente quando existir deploy separado ou placeholder |
+| `SUPABASE_URL` | `https://jqduomezsszxsapidmrm.supabase.co` |
+| `SUPABASE_KEY` | anon key (JWT `eyJ...`) — **não** use só `SUPABASE_ANON_KEY` sem `SUPABASE_KEY` |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role JWT (só server) |
+| `DATABASE_URL` | **Transaction pooler porta 6543** (Connect no Supabase) |
+| `NUXT_PUBLIC_APP_URL` | `https://joga-facil-zeta.vercel.app` |
+| `ABACATEPAY_API_KEY` | chave sandbox |
+| `MOCK_AUTH` | `1` até auth/tenant estarem prontos; `0` com Supabase Auth configurado |
 
-Para auth Supabase real, configura também `SUPABASE_URL`, `SUPABASE_ANON_KEY` (ou chaves que o `@nuxtjs/supabase` espera), `DATABASE_URL`, etc., conforme `.env.example`.
+**Diagnóstico:** após deploy, abra `https://seu-dominio.vercel.app/api/health` — mostra se DB e Supabase estão OK.
+
+Supabase Auth → URL Configuration: Site URL + redirect `https://seu-dominio.vercel.app/auth/callback`.
 
 ## Estrutura
 
