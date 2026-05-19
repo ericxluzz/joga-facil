@@ -22,7 +22,18 @@ O repositório é um monorepo; existe `vercel.json` na raiz para:
 1. **`pnpm turbo run build --filter=@agendaslim/gestor...`** — compila só o gestor e dependências workspace (evita falhas no app cliente/PWA no mesmo pipeline).
 2. **Nitro** — em `apps/gestor/nuxt.config.ts`, no ambiente Vercel (`VERCEL=1`), a saída vai para **`.vercel/output` na raiz**, onde o runtime da Vercel espera encontrar o Build Output.
 
-Na UI da Vercel: **Root Directory** `./` (raiz do repo). O `vercel.json` define build e `outputDirectory: apps/gestor/.vercel/output`.
+### Root Directory (obrigatório — evita 404 NOT_FOUND)
+
+Escolha **uma** opção e mantenha consistente:
+
+| Opção | Root Directory na Vercel | Arquivo de config |
+|--------|--------------------------|-------------------|
+| **Recomendado** | `apps/gestor` | `apps/gestor/vercel.json` |
+| Alternativa | vazio / `.` (raiz do repo) | `vercel.json` na raiz |
+
+Se estiver `apps/gestor` no painel mas o `outputDirectory` apontar para `apps/gestor/.vercel/output`, a Vercel procura uma pasta que não existe → **404 NOT_FOUND**.
+
+**Framework Preset:** Other (o build é controlado pelo `vercel.json`).
 
 **Variáveis obrigatórias** (Settings → Environment Variables):
 
