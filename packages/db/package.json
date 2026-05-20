@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./resolve-database-url": "./src/resolve-database-url.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",

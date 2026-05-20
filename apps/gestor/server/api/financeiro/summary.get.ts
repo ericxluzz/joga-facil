@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { payments, bookings } from '@agendaslim/db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { createSupabaseAdmin } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -9,111 +7,64 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
+  const admin = createSupabaseAdmin();
   const query = getQuery(event);
   const fromStr = (query.from as string) || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
   const toStr = (query.to as string) || new Date().toISOString().substring(0, 10);
+  const fromISO = `${fromStr}T00:00:00`;
+  const toISO = `${toStr}T23:59:59`;
 
-  const fromDate = new Date(`${fromStr}T00:00:00`);
-  const toDate = new Date(`${toStr}T23:59:59`);
+  // Fetch paid payments in period
+  const { data: paidPayments } = await admin
+    .from('payments')
+    .select('amount_cents, bookings!inner(tenant_id, payment_method)')
+    .eq('bookings.tenant_id', tenant.id)
+    .eq('status', 'paid')
+    .gte('paid_at', fromISO)
+    .lte('paid_at', toISO);
 
-  // Query aggregates
-  const [totalFaturado] = await db
-    .select({ sum: sql<number>`sum(${payments.amountCents})::int` })
-    .from(payments)
-    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(payments.status, 'paid'),
-        gte(payments.paidAt, fromDate),
-        lte(payments.paidAt, toDate)
-      )
-    );
+  // Fetch refunded
+  const { data: refundedPayments } = await admin
+    .from('payments')
+    .select('amount_cents, bookings!inner(tenant_id)')
+    .eq('bookings.tenant_id', tenant.id)
+    .eq('status', 'refunded')
+    .gte('updated_at', fromISO)
+    .lte('updated_at', toISO);
 
-  const [countTransacoes] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(payments)
-    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(payments.status, 'paid'),
-        gte(payments.paidAt, fromDate),
-        lte(payments.paidAt, toDate)
-      )
-    );
+  // Fetch pending
+  const { data: pendingPayments } = await admin
+    .from('payments')
+    .select('amount_cents, bookings!inner(tenant_id)')
+    .eq('bookings.tenant_id', tenant.id)
+    .eq('status', 'pending')
+    .gte('created_at', fromISO)
+    .lte('created_at', toISO);
 
-  const [reembolsos] = await db
-    .select({ sum: sql<number>`sum(${payments.amountCents})::int` })
-    .from(payments)
-    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(payments.status, 'refunded'),
-        gte(payments.updatedAt, fromDate),
-        lte(payments.updatedAt, toDate)
-      )
-    );
-
-  const [pendentes] = await db
-    .select({ sum: sql<number>`sum(${payments.amountCents})::int` })
-    .from(payments)
-    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(payments.status, 'pending'),
-        gte(payments.createdAt, fromDate),
-        lte(payments.createdAt, toDate)
-      )
-    );
-
-  const faturamentoTotal = (totalFaturado?.sum || 0) / 100;
-  const transacoesCount = countTransacoes?.count || 0;
+  const faturamentoTotalCents = (paidPayments || []).reduce((s: number, p: any) => s + (p.amount_cents || 0), 0);
+  const transacoesCount = (paidPayments || []).length;
+  const faturamentoTotal = faturamentoTotalCents / 100;
   const ticketMedio = transacoesCount > 0 ? Number((faturamentoTotal / transacoesCount).toFixed(2)) : 0;
-  const reembolsosTotal = (reembolsos?.sum || 0) / 100;
-  const pendentesTotal = (pendentes?.sum || 0) / 100;
+  const reembolsosTotal = (refundedPayments || []).reduce((s: number, p: any) => s + (p.amount_cents || 0), 0) / 100;
+  const pendentesTotal = (pendingPayments || []).reduce((s: number, p: any) => s + (p.amount_cents || 0), 0) / 100;
 
-  // Breakdown by method
-  const pixBreakdown = await db
-    .select({
-      sum: sql<number>`sum(${payments.amountCents})::int`,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(payments)
-    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(payments.status, 'paid'),
-        eq(bookings.paymentMethod, 'pix_upfront'),
-        gte(payments.paidAt, fromDate),
-        lte(payments.paidAt, toDate)
-      )
-    );
+  const pixPaid = (paidPayments || []).filter((p: any) => p.bookings?.payment_method === 'pix_upfront');
+  const pixAmountCents = pixPaid.reduce((s: number, p: any) => s + (p.amount_cents || 0), 0);
 
-  const onsiteBreakdown = await db
-    .select({
-      sum: sql<number>`sum(${bookings.totalCents})::int`,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(bookings)
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(bookings.status, 'confirmed'),
-        eq(bookings.paymentMethod, 'pay_on_site'),
-        gte(bookings.startsAt, fromDate),
-        lte(bookings.startsAt, toDate)
-      )
-    );
+  // On-site confirmed bookings
+  const { data: onsiteBookings } = await admin
+    .from('bookings')
+    .select('total_cents')
+    .eq('tenant_id', tenant.id)
+    .eq('status', 'confirmed')
+    .eq('payment_method', 'pay_on_site')
+    .gte('starts_at', fromISO)
+    .lte('starts_at', toISO);
+
+  const onsiteAmountCents = (onsiteBookings || []).reduce((s: number, b: any) => s + (b.total_cents || 0), 0);
 
   return {
-    period: {
-      from: fromStr,
-      to: toStr,
-    },
+    period: { from: fromStr, to: toStr },
     kpis: {
       faturamentoTotal,
       transacoes: transacoesCount,
@@ -129,8 +80,8 @@ export default defineEventHandler(async (event) => {
       ],
     },
     breakdown: [
-      { method: 'PIX antecipado', amountCents: pixBreakdown[0]?.sum || 0, count: pixBreakdown[0]?.count || 0, color: '#10B981' },
-      { method: 'Pagar na chegada', amountCents: onsiteBreakdown[0]?.sum || 0, count: onsiteBreakdown[0]?.count || 0, color: '#F59E0B' },
+      { method: 'PIX antecipado', amountCents: pixAmountCents, count: pixPaid.length, color: '#10B981' },
+      { method: 'Pagar na chegada', amountCents: onsiteAmountCents, count: (onsiteBookings || []).length, color: '#F59E0B' },
     ],
   };
 });

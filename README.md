@@ -42,7 +42,8 @@ Se estiver `apps/gestor` no painel mas o `outputDirectory` apontar para `apps/ge
 | `SUPABASE_URL` | `https://jqduomezsszxsapidmrm.supabase.co` |
 | `SUPABASE_KEY` | anon key (JWT `eyJ...`) — **não** use só `SUPABASE_ANON_KEY` sem `SUPABASE_KEY` |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role JWT (só server) |
-| `DATABASE_URL` | **Transaction pooler porta 6543** (Connect no Supabase) |
+| `DATABASE_URL` | **Transaction pooler** `db.<ref>.supabase.co:6543` (Connect → Transaction) |
+| `DATABASE_POOLER_URL` | (opcional) **Session pooler** `aws-0-<região>.pooler.supabase.com` se a Vercel der `ENOTFOUND` no `db.*` |
 | `NUXT_PUBLIC_APP_URL` | `https://joga-facil-zeta.vercel.app` |
 | `ABACATEPAY_API_KEY` | chave sandbox |
 | `MOCK_AUTH` | `1` até auth/tenant estarem prontos; `0` com Supabase Auth configurado |

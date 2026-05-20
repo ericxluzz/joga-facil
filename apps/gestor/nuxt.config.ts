@@ -60,6 +60,10 @@ export default defineNuxtConfig({
     abacatepayApiKey: process.env.ABACATEPAY_API_KEY,
     abacatepayWebhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
     resendApiKey: process.env.RESEND_API_KEY,
+    validapayAccessToken: process.env.VALIDAPAY_ACCESS_TOKEN,
+    validapayClientId: process.env.VALIDAPAY_CLIENT_ID,
+    validapayClientSecret: process.env.VALIDAPAY_CLIENT_SECRET,
+    validapayWebhookSecret: process.env.VALIDAPAY_WEBHOOK_SECRET,
 
     public: {
       appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000',

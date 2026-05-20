@@ -1,6 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { blocks } from '@agendaslim/db/schema';
+import { createSupabaseAdmin, mapBlock } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -11,16 +10,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'startsAt e endsAt obrigatórios' });
   }
 
-  const [block] = await db
-    .insert(blocks)
-    .values({
-      tenantId: tenant.id,
-      resourceId: body.resourceId || null,
-      startsAt: new Date(body.startsAt),
-      endsAt: new Date(body.endsAt),
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('blocks')
+    .insert({
+      tenant_id: tenant.id,
+      resource_id: body.resourceId || null,
+      starts_at: new Date(body.startsAt).toISOString(),
+      ends_at: new Date(body.endsAt).toISOString(),
       reason: body.reason || null,
     })
-    .returning();
+    .select()
+    .single();
 
-  return block;
+  if (error) throw createError({ statusCode: 500, message: error.message });
+  return mapBlock(data!);
 });

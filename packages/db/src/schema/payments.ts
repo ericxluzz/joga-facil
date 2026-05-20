@@ -19,7 +19,11 @@ export const payments = pgTable(
 
     provider: varchar('provider', { length: 32 }).notNull().default('abacatepay'),
     providerPaymentId: varchar('provider_payment_id', { length: 100 }),
+    providerAccountId: varchar('provider_account_id', { length: 100 }),
     amountCents: integer('amount_cents').notNull(),
+    sellerAmountCents: integer('seller_amount_cents').notNull().default(0),
+    platformFeeCents: integer('platform_fee_cents').notNull().default(0),
+    dueOnSiteCents: integer('due_on_site_cents').notNull().default(0),
     status: paymentStatusEnum('status').notNull().default('pending'),
 
     // PIX específico

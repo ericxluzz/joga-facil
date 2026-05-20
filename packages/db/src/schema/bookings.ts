@@ -30,7 +30,11 @@ export const bookingStatusEnum = pgEnum('booking_status', [
   'no_show',
 ]);
 
-export const paymentMethodEnum = pgEnum('payment_method', ['pix_upfront', 'pay_on_site']);
+export const paymentMethodEnum = pgEnum('payment_method', [
+  'pix_upfront',
+  'pay_on_site',
+  'deposit_plus_on_site',
+]);
 
 // CORE TABLE
 // IMPORTANTE: a constraint única `uq_booking_active_slot` previne race condition.

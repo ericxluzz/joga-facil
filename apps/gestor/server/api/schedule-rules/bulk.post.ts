@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { scheduleRules } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapScheduleRule } from '../../utils/supabase-admin';
 
 // POST /api/schedule-rules/bulk — substitui todas as regras de um recurso
 export default defineEventHandler(async (event) => {
@@ -17,40 +15,38 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'resourceId é obrigatório' });
   }
 
+  const admin = createSupabaseAdmin();
+
+  // Delete existing rules for this resource
+  await admin.from('schedule_rules').delete().eq('resource_id', resourceId);
+
   const payload = (rules || []).flatMap((r: any) => {
-    const weekdaysList = Array.isArray(r.weekdays) ? r.weekdays : (r.weekday !== undefined ? [r.weekday] : []);
+    const weekdaysList = Array.isArray(r.weekdays)
+      ? r.weekdays
+      : r.weekday !== undefined
+      ? [r.weekday]
+      : [];
     return weekdaysList.map((weekday: number) => ({
-      tenantId: tenant.id,
-      resourceId,
+      tenant_id: tenant.id,
+      resource_id: resourceId,
       weekday,
-      startTime: r.startTime,
-      endTime: r.endTime,
-      priceModifier: String(r.priceModifier || 1.0),
+      start_time: r.startTime,
+      end_time: r.endTime,
+      price_modifier: String(r.priceModifier || 1.0),
       active: r.active !== undefined ? r.active : true,
     }));
   });
 
   let inserted: any[] = [];
   if (payload.length > 0) {
-    inserted = await db.transaction(async (tx) => {
-      await tx
-        .delete(scheduleRules)
-        .where(eq(scheduleRules.resourceId, resourceId));
-
-      return await tx
-        .insert(scheduleRules)
-        .values(payload)
-        .returning();
-    });
-  } else {
-    await db
-      .delete(scheduleRules)
-      .where(eq(scheduleRules.resourceId, resourceId));
+    const { data, error } = await admin.from('schedule_rules').insert(payload).select();
+    if (error) throw createError({ statusCode: 500, message: error.message });
+    inserted = data || [];
   }
 
   return {
     resourceId,
     count: inserted.length,
-    rules: inserted,
+    rules: inserted.map(mapScheduleRule),
   };
 });

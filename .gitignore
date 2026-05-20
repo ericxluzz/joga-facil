@@ -38,3 +38,5 @@ pnpm-debug.log*
 # Drizzle
 drizzle/
 !packages/db/drizzle/
+
+.vercel

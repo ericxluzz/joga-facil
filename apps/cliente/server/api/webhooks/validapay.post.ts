@@ -1,14 +1,34 @@
-// POST /api/webhooks/abacate — recebe notificações do AbacatePay
+// POST /api/webhooks/validapay — recebe notificações do ValidaPay
+// Idempotência via webhook_events (unique provider+external_id).
 import { createSupabaseAdmin } from '../../utils/supabase-admin';
-import { mapAbacateStatus } from '../../utils/abacate';
+import { mapValidapayStatus } from '../../utils/payments/provider';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const eventId: string | undefined = body?.event_id || body?.id || body?.data?.id;
-  const eventType: string = body?.event || body?.type || 'unknown';
+  // Validação HMAC opcional (quando VALIDAPAY_WEBHOOK_SECRET configurado)
+  const secret = process.env.VALIDAPAY_WEBHOOK_SECRET;
+  if (secret) {
+    const signature = getRequestHeader(event, 'x-validapay-signature') ||
+                      getRequestHeader(event, 'x-webhook-signature');
+    if (!signature) {
+      throw createError({ statusCode: 401, message: 'Assinatura do webhook ausente' });
+    }
+    // Verificação HMAC-SHA256
+    const { createHmac } = await import('crypto');
+    const rawBody = JSON.stringify(body);
+    const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+    if (signature !== expected && signature !== `sha256=${expected}`) {
+      throw createError({ statusCode: 401, message: 'Assinatura inválida' });
+    }
+  }
+
+  // Extrai identificadores do payload
+  const data = body?.data || body;
+  const eventType: string = body?.event || body?.type || body?.eventType || 'charge.updated';
   const externalChargeId: string | undefined =
-    body?.data?.id || body?.data?.charge_id || body?.id;
+    data?.id || data?.chargeId || data?.charge_id || data?.uuid || body?.id;
+  const eventId: string | undefined = body?.eventId || body?.event_id || externalChargeId;
 
   if (!externalChargeId) {
     throw createError({ statusCode: 400, message: 'payload sem charge id' });
@@ -19,7 +39,7 @@ export default defineEventHandler(async (event) => {
 
   // Idempotência
   const { error: insertError } = await admin.from('webhook_events').insert({
-    provider: 'abacatepay',
+    provider: 'validapay',
     external_id: dedupeId,
     event_type: eventType,
     payload: body,
@@ -34,6 +54,7 @@ export default defineEventHandler(async (event) => {
   const { data: payments } = await admin
     .from('payments')
     .select('*')
+    .eq('provider', 'validapay')
     .eq('provider_payment_id', externalChargeId)
     .limit(1);
 
@@ -42,19 +63,23 @@ export default defineEventHandler(async (event) => {
     await admin
       .from('webhook_events')
       .update({ processed_at: new Date().toISOString(), error: 'payment_not_found' })
-      .eq('provider', 'abacatepay')
+      .eq('provider', 'validapay')
       .eq('external_id', dedupeId);
     return { ok: true, warning: 'payment_not_found' };
   }
 
-  const abacateStatus = body?.data?.status || body?.status;
-  const newStatus = abacateStatus ? mapAbacateStatus(abacateStatus) : payment.status;
+  const rawStatus = data?.status || body?.status;
+  const newStatus = rawStatus ? mapValidapayStatus(rawStatus) : payment.status;
   const now = new Date().toISOString();
 
   const paymentPatch: Record<string, any> = { status: newStatus, updated_at: now, raw_payload: body };
   if (newStatus === 'paid') paymentPatch.paid_at = now;
 
-  await admin.from('payments').update(paymentPatch).eq('provider_payment_id', externalChargeId);
+  await admin
+    .from('payments')
+    .update(paymentPatch)
+    .eq('provider', 'validapay')
+    .eq('provider_payment_id', externalChargeId);
 
   if (newStatus === 'paid') {
     await admin.from('bookings').update({ status: 'confirmed', confirmed_at: now, updated_at: now }).eq('id', payment.booking_id);
@@ -65,7 +90,7 @@ export default defineEventHandler(async (event) => {
   await admin
     .from('webhook_events')
     .update({ processed_at: now })
-    .eq('provider', 'abacatepay')
+    .eq('provider', 'validapay')
     .eq('external_id', dedupeId);
 
   return { ok: true, status: newStatus };

@@ -1,23 +1,20 @@
-import { db } from '@agendaslim/db/client';
-import { bookings } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapBooking } from '../../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
   if (!id) throw createError({ statusCode: 400, message: 'ID obrigatório' });
 
-  const [booking] = await db
-    .update(bookings)
-    .set({
-      status: 'no_show',
-      updatedAt: new Date(),
-    })
-    .where(eq(bookings.id, id))
-    .returning();
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('bookings')
+    .update({ status: 'no_show', updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
 
-  if (!booking) {
+  if (error || !data) {
     throw createError({ statusCode: 404, statusMessage: 'Reserva não encontrada' });
   }
 
-  return { success: true, booking };
+  return { success: true, booking: mapBooking(data) };
 });

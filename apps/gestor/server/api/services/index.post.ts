@@ -1,6 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { services } from '@agendaslim/db/schema';
+import { createSupabaseAdmin, mapService } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -11,17 +10,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'name, durationMinutes e basePriceCents são obrigatórios' });
   }
 
-  const [service] = await db
-    .insert(services)
-    .values({
-      tenantId: tenant.id,
-      resourceId: body.resourceId || null,
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('services')
+    .insert({
+      tenant_id: tenant.id,
+      resource_id: body.resourceId || null,
       name: body.name,
       description: body.description || null,
-      durationMinutes: body.durationMinutes,
-      basePriceCents: body.basePriceCents,
+      duration_minutes: body.durationMinutes,
+      base_price_cents: body.basePriceCents,
     })
-    .returning();
+    .select()
+    .single();
 
-  return service;
+  if (error) throw createError({ statusCode: 500, message: error.message });
+  return mapService(data!);
 });

@@ -1,17 +1,19 @@
+import { createSupabaseAdmin } from '../utils/supabase-admin';
+
 // GET /api/health — diagnóstico rápido (sem expor segredos)
 export default defineEventHandler(async () => {
-  const hasDb = !!process.env.DATABASE_URL;
-  const hasSupabase = !!(process.env.SUPABASE_URL && (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY));
+  const hasSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const hasSupabaseAnon = !!(process.env.SUPABASE_URL && (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY));
   const mockAuth = process.env.MOCK_AUTH === '1';
 
   let dbOk = false;
   let dbError: string | undefined;
 
-  if (hasDb) {
+  if (hasSupabase) {
     try {
-      const { db } = await import('@agendaslim/db/client');
-      const { sql } = await import('drizzle-orm');
-      await db.execute(sql`SELECT 1`);
+      const admin = createSupabaseAdmin();
+      const { error } = await admin.from('tenants').select('id').limit(1);
+      if (error) throw new Error(error.message);
       dbOk = true;
     } catch (e: unknown) {
       dbError = e instanceof Error ? e.message : String(e);
@@ -19,12 +21,14 @@ export default defineEventHandler(async () => {
   }
 
   return {
-    ok: hasSupabase && (mockAuth || dbOk),
+    ok: hasSupabaseAnon && dbOk,
     mockAuth,
     env: {
-      hasDatabaseUrl: hasDb,
       hasSupabaseUrl: !!process.env.SUPABASE_URL,
-      hasSupabaseKey: !!(process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY),
+      hasSupabaseKey: hasSupabaseAnon,
+      hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasValidapay: !!(process.env.VALIDAPAY_ACCESS_TOKEN || process.env.VALIDAPAY_CLIENT_ID),
+      hasAbacatepay: !!process.env.ABACATEPAY_API_KEY,
       nodeEnv: process.env.NODE_ENV,
       vercel: !!process.env.VERCEL,
     },

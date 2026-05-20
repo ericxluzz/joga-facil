@@ -1,33 +1,19 @@
-import { db } from '@agendaslim/db/client';
-import { tenants, resources, services } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapTenant, mapResource, mapService } from '../../../utils/supabase-admin';
 
 // GET /api/r/[slug] — dados públicos do estabelecimento
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug');
   if (!slug) throw createError({ statusCode: 400, message: 'slug obrigatório' });
 
-  const [tenant] = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.slug, slug))
-    .limit(1);
+  const admin = createSupabaseAdmin();
 
-  if (!tenant) {
-    throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
-  }
+  const { data: tenantRow } = await admin.from('tenants').select('*').eq('slug', slug).single();
+  if (!tenantRow) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
 
-  // Load resources for this tenant
-  const tenantResources = await db
-    .select()
-    .from(resources)
-    .where(eq(resources.tenantId, tenant.id));
+  const tenant = mapTenant(tenantRow);
 
-  // Load services for this tenant
-  const tenantServices = await db
-    .select()
-    .from(services)
-    .where(eq(services.tenantId, tenant.id));
+  const { data: resourceRows } = await admin.from('resources').select('*').eq('tenant_id', tenant.id);
+  const { data: serviceRows } = await admin.from('services').select('*').eq('tenant_id', tenant.id);
 
   return {
     id: tenant.id,
@@ -40,7 +26,7 @@ export default defineEventHandler(async (event) => {
     instagram: tenant.settings?.instagram,
     cancellationPolicy: tenant.settings?.cancellationPolicy || 'Cancelamentos com mais de 24h de antecedência são reembolsados integralmente.',
     settings: tenant.settings,
-    resources: tenantResources,
-    services: tenantServices,
+    resources: (resourceRows || []).map(mapResource),
+    services: (serviceRows || []).map(mapService),
   };
 });

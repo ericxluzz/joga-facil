@@ -13,6 +13,13 @@ export type TenantSettings = {
   payOnSiteTimeoutMinutes: number;
   cancellationPolicy: string;
 
+  // Pagamentos
+  paymentProvider?: 'abacatepay' | 'validapay';
+  platformFeeCents?: number;
+  depositPercentage?: number;
+  validapayAccountId?: string;
+  paymentOnboardingStatus?: 'not_started' | 'pending' | 'approved' | 'rejected';
+
   // Branding mínimo do estabelecimento
   description?: string;
   whatsapp?: string;
@@ -46,6 +53,9 @@ export const defaultTenantSettings: TenantSettings = {
   maxAdvanceDays: 30,
   holdMinutes: 10,
   payOnSiteTimeoutMinutes: 60,
+  platformFeeCents: 500,
+  depositPercentage: 50,
+  paymentOnboardingStatus: 'not_started',
   cancellationPolicy:
     'Cancelamentos com mais de 24h de antecedência são reembolsados integralmente.',
 };

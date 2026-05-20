@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { resources } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapResource } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -9,12 +7,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
-  const list = await db
-    .select()
-    .from(resources)
-    .where(eq(resources.tenantId, tenant.id));
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin.from('resources').select('*').eq('tenant_id', tenant.id);
+  if (error) throw createError({ statusCode: 500, message: error.message });
 
-  return {
-    resources: list
-  };
+  return { resources: (data || []).map(mapResource) };
 });

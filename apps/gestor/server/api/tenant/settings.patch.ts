@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { tenants } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin } from '../../utils/supabase-admin';
 
 // PATCH /api/tenant/settings — Atualiza as configurações (settings) do tenant
 export default defineEventHandler(async (event) => {
@@ -11,9 +9,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
+  const admin = createSupabaseAdmin();
 
   const updatedSettings = {
     ...(tenant.settings || {}),
+    // Reserva
     requireRegistration: body.requireRegistration ?? tenant.settings?.requireRegistration ?? false,
     acceptPayOnSite: body.acceptPayOnSite ?? tenant.settings?.acceptPayOnSite ?? false,
     minAdvanceMinutes: body.minAdvanceMinutes ?? tenant.settings?.minAdvanceMinutes ?? 60,
@@ -21,16 +21,25 @@ export default defineEventHandler(async (event) => {
     holdMinutes: body.holdMinutes ?? tenant.settings?.holdMinutes ?? 10,
     payOnSiteTimeoutMinutes: body.payOnSiteTimeoutMinutes ?? tenant.settings?.payOnSiteTimeoutMinutes ?? 60,
     cancellationPolicy: body.cancellationPolicy ?? tenant.settings?.cancellationPolicy ?? '',
+    // Pagamentos
+    ...(body.paymentProvider !== undefined && { paymentProvider: body.paymentProvider }),
+    ...(body.validapayAccountId !== undefined && { validapayAccountId: body.validapayAccountId }),
+    ...(body.platformFeeCents !== undefined && { platformFeeCents: Number(body.platformFeeCents) }),
+    ...(body.depositPercentage !== undefined && { depositPercentage: Number(body.depositPercentage) }),
+    ...(body.paymentOnboardingStatus !== undefined && { paymentOnboardingStatus: body.paymentOnboardingStatus }),
+    // Branding
+    ...(body.description !== undefined && { description: body.description }),
+    ...(body.whatsapp !== undefined && { whatsapp: body.whatsapp }),
+    ...(body.instagram !== undefined && { instagram: body.instagram }),
   };
 
-  const [updatedTenant] = await db
-    .update(tenants)
-    .set({
-      settings: updatedSettings,
-      updatedAt: new Date(),
-    })
-    .where(eq(tenants.id, tenant.id))
-    .returning();
+  const { data: updated, error } = await admin
+    .from('tenants')
+    .update({ settings: updatedSettings, updated_at: new Date().toISOString() })
+    .eq('id', tenant.id)
+    .select('settings')
+    .single();
 
-  return { settings: updatedTenant.settings };
+  if (error) throw createError({ statusCode: 500, message: error.message });
+  return { settings: updated!.settings };
 });

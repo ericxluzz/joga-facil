@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { resources } from '@agendaslim/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapResource } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
@@ -11,20 +9,22 @@ export default defineEventHandler(async (event) => {
   if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
 
   const body = await readBody(event);
+  const admin = createSupabaseAdmin();
 
-  const patch: Record<string, any> = { updatedAt: new Date() };
+  const patch: Record<string, any> = { updated_at: new Date().toISOString() };
   if (body.name !== undefined) patch.name = body.name;
   if (body.type !== undefined) patch.type = body.type;
-  if (body.photoUrl !== undefined) patch.photoUrl = body.photoUrl;
+  if (body.photoUrl !== undefined) patch.photo_url = body.photoUrl;
   if (body.active !== undefined) patch.active = body.active;
-  if (body.config !== undefined) patch.config = body.config;
 
-  const [resource] = await db
-    .update(resources)
-    .set(patch)
-    .where(and(eq(resources.id, id), eq(resources.tenantId, tenant.id)))
-    .returning();
+  const { data, error } = await admin
+    .from('resources')
+    .update(patch)
+    .eq('id', id)
+    .eq('tenant_id', tenant.id)
+    .select()
+    .single();
 
-  if (!resource) throw createError({ statusCode: 404, message: 'Quadra não encontrada' });
-  return resource;
+  if (error || !data) throw createError({ statusCode: 404, message: 'Quadra não encontrada' });
+  return mapResource(data);
 });

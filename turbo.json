@@ -4,7 +4,30 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".nuxt/**", ".output/**", ".vercel/output/**", "dist/**"]
+      "outputs": [".nuxt/**", ".output/**", ".vercel/output/**", "dist/**"],
+      "env": [
+        "DATABASE_URL",
+        "DATABASE_POOLER_URL",
+        "SUPABASE_URL",
+        "SUPABASE_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ABACATEPAY_API_KEY",
+        "ABACATEPAY_WEBHOOK_SECRET",
+        "VALIDAPAY_ACCESS_TOKEN",
+        "VALIDAPAY_CLIENT_ID",
+        "VALIDAPAY_CLIENT_SECRET",
+        "VALIDAPAY_WEBHOOK_SECRET",
+        "VALIDAPAY_ENV",
+        "VALIDAPAY_DEFAULT_ACCOUNT_ID",
+        "PAYMENT_PROVIDER",
+        "PLATFORM_FEE_CENTS",
+        "DEPOSIT_PERCENTAGE",
+        "MOCK_AUTH",
+        "MOCK_PAYMENTS",
+        "NUXT_PUBLIC_APP_URL",
+        "NUXT_PUBLIC_CLIENT_URL"
+      ]
     },
     "dev": {
       "cache": false,

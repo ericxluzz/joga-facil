@@ -52,10 +52,14 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL,
     supabaseUrl: process.env.SUPABASE_URL,
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     abacatepayApiKey: process.env.ABACATEPAY_API_KEY,
+    abacatepayWebhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
+    validapayAccessToken: process.env.VALIDAPAY_ACCESS_TOKEN,
+    validapayClientId: process.env.VALIDAPAY_CLIENT_ID,
+    validapayClientSecret: process.env.VALIDAPAY_CLIENT_SECRET,
+    validapayWebhookSecret: process.env.VALIDAPAY_WEBHOOK_SECRET,
     upstashRedisUrl: process.env.UPSTASH_REDIS_REST_URL,
     upstashRedisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
 

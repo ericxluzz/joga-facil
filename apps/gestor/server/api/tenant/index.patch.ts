@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { tenants } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapTenant } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -11,24 +9,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
-  // Merge settings
-  const mergedSettings = {
-    ...tenant.settings,
-    ...body.settings,
-  };
+  const admin = createSupabaseAdmin();
+  const mergedSettings = { ...tenant.settings, ...(body.settings || {}) };
 
-  const [updatedTenant] = await db
-    .update(tenants)
-    .set({
+  const { data: updated, error } = await admin
+    .from('tenants')
+    .update({
       name: body.name ?? tenant.name,
       slug: body.slug ?? tenant.slug,
-      photoUrl: body.photoUrl !== undefined ? body.photoUrl : tenant.photoUrl,
+      photo_url: body.photoUrl !== undefined ? body.photoUrl : tenant.photoUrl,
       address: body.address !== undefined ? body.address : tenant.address,
       settings: mergedSettings,
-      updatedAt: new Date(),
+      updated_at: new Date().toISOString(),
     })
-    .where(eq(tenants.id, tenant.id))
-    .returning();
+    .eq('id', tenant.id)
+    .select()
+    .single();
 
-  return updatedTenant;
+  if (error) throw createError({ statusCode: 500, message: error.message });
+  return mapTenant(updated!);
 });

@@ -1,9 +1,9 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { resolveDatabaseUrl } from './resolve-database-url';
 
-const connectionString =
-  process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/agendaslim';
+const connectionString = resolveDatabaseUrl();
 
 // Em serverless (Vercel/Lambda) usar max: 1.
 // prepare: false é obrigatório com o Transaction pooler do Supabase (porta 6543).

@@ -1,6 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { scheduleRules } from '@agendaslim/db/schema';
+import { createSupabaseAdmin, mapScheduleRule } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -14,17 +13,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const [rule] = await db
-    .insert(scheduleRules)
-    .values({
-      tenantId: tenant.id,
-      resourceId: body.resourceId,
+  const admin = createSupabaseAdmin();
+  const { data, error } = await admin
+    .from('schedule_rules')
+    .insert({
+      tenant_id: tenant.id,
+      resource_id: body.resourceId,
       weekday: body.weekday,
-      startTime: body.startTime,
-      endTime: body.endTime,
-      priceModifier: String(body.priceModifier ?? 1.0),
+      start_time: body.startTime,
+      end_time: body.endTime,
+      price_modifier: String(body.priceModifier ?? 1.0),
     })
-    .returning();
+    .select()
+    .single();
 
-  return rule;
+  if (error) throw createError({ statusCode: 500, message: error.message });
+  return mapScheduleRule(data!);
 });

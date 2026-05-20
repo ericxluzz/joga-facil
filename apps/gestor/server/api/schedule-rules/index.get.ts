@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { scheduleRules, resources } from '@agendaslim/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { createSupabaseAdmin } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -9,33 +7,31 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
+  const admin = createSupabaseAdmin();
   const query = getQuery(event);
-  const resourceId = query.resourceId as string | undefined;
 
-  const conditions = [eq(scheduleRules.tenantId, tenant.id)];
-  if (resourceId) {
-    conditions.push(eq(scheduleRules.resourceId, resourceId));
+  let q = admin
+    .from('schedule_rules')
+    .select('id, resource_id, weekday, start_time, end_time, price_modifier, active, resources(name)')
+    .eq('tenant_id', tenant.id);
+
+  if (query.resourceId) {
+    q = q.eq('resource_id', query.resourceId as string);
   }
 
-  const list = await db
-    .select({
-      id: scheduleRules.id,
-      resourceId: scheduleRules.resourceId,
-      resourceName: resources.name,
-      weekday: scheduleRules.weekday,
-      startTime: scheduleRules.startTime,
-      endTime: scheduleRules.endTime,
-      priceModifier: scheduleRules.priceModifier,
-      active: scheduleRules.active,
-    })
-    .from(scheduleRules)
-    .innerJoin(resources, eq(scheduleRules.resourceId, resources.id))
-    .where(and(...conditions));
+  const { data, error } = await q;
+  if (error) throw createError({ statusCode: 500, message: error.message });
 
-  const mapped = list.map(r => ({
-    ...r,
-    priceModifier: parseFloat(r.priceModifier),
-  }));
-
-  return { rules: mapped };
+  return {
+    rules: (data || []).map((r: any) => ({
+      id: r.id,
+      resourceId: r.resource_id,
+      resourceName: r.resources?.name ?? '',
+      weekday: r.weekday,
+      startTime: r.start_time,
+      endTime: r.end_time,
+      priceModifier: parseFloat(r.price_modifier),
+      active: r.active,
+    })),
+  };
 });

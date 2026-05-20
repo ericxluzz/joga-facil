@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { payments, bookings, resources } from '@agendaslim/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { createSupabaseAdmin } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -9,42 +7,31 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
+  const admin = createSupabaseAdmin();
   const query = getQuery(event);
   const status = query.status as string | undefined;
 
-  const conditions = [eq(bookings.tenantId, tenant.id)];
-  if (status) {
-    conditions.push(eq(payments.status, status as any));
-  }
+  let q = admin
+    .from('payments')
+    .select('id, booking_id, amount_cents, status, created_at, paid_at, bookings!inner(customer_name, payment_method, tenant_id, resources(name))')
+    .eq('bookings.tenant_id', tenant.id)
+    .order('created_at', { ascending: false });
 
-  const result = await db
-    .select({
-      id: payments.id,
-      bookingId: payments.bookingId,
-      customerName: bookings.customerName,
-      resourceName: resources.name,
-      amountCents: payments.amountCents,
-      status: payments.status,
-      method: bookings.paymentMethod,
-      createdAt: payments.createdAt,
-      paidAt: payments.paidAt,
-    })
-    .from(payments)
-    .innerJoin(bookings, eq(payments.bookingId, bookings.id))
-    .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(and(...conditions))
-    .orderBy(desc(payments.createdAt));
+  if (status) q = q.eq('status', status);
 
-  const list = result.map(p => ({
+  const { data, error } = await q;
+  if (error) throw createError({ statusCode: 500, message: error.message });
+
+  const list = (data || []).map((p: any) => ({
     id: p.id,
-    bookingId: p.bookingId,
-    customerName: p.customerName,
-    resourceName: p.resourceName,
-    amountCents: p.amountCents,
+    bookingId: p.booking_id,
+    customerName: p.bookings?.customer_name ?? '',
+    resourceName: p.bookings?.resources?.name ?? '',
+    amountCents: p.amount_cents,
     status: p.status,
-    method: p.method === 'pix_upfront' ? 'PIX' : 'Na chegada',
-    date: p.createdAt.toISOString().substring(0, 10),
-    paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+    method: p.bookings?.payment_method === 'pix_upfront' ? 'PIX' : 'Na chegada',
+    date: new Date(p.created_at).toISOString().substring(0, 10),
+    paidAt: p.paid_at ? new Date(p.paid_at).toISOString() : null,
   }));
 
   return { payments: list, total: list.length };

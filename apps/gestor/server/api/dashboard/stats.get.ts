@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { bookings, resources } from '@agendaslim/db/schema';
-import { eq, and, gte, lte, sql, asc } from 'drizzle-orm';
+import { createSupabaseAdmin } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -9,106 +7,77 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
+  const admin = createSupabaseAdmin();
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  // Reservas de hoje
+  const { data: todayBookings } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('tenant_id', tenant.id)
+    .neq('status', 'cancelled')
+    .gte('starts_at', startOfDay)
+    .lte('starts_at', endOfDay);
 
-  // 1. Reservas de hoje
-  const [todayCountResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(bookings)
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        gte(bookings.startsAt, startOfDay),
-        lte(bookings.startsAt, endOfDay),
-        sql`${bookings.status} != 'cancelled'`
-      )
-    );
+  // Faturamento do mês (bookings confirmadas)
+  const { data: monthBookings } = await admin
+    .from('bookings')
+    .select('total_cents')
+    .eq('tenant_id', tenant.id)
+    .eq('status', 'confirmed')
+    .gte('starts_at', startOfMonth)
+    .lte('starts_at', endOfMonth);
 
-  // 2. Faturamento do mês
-  const [faturamentoResult] = await db
-    .select({ sum: sql<number>`sum(${bookings.totalCents})::int` })
-    .from(bookings)
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        gte(bookings.startsAt, startOfMonth),
-        lte(bookings.startsAt, endOfMonth),
-        eq(bookings.status, 'confirmed')
-      )
-    );
+  // Aprovações pendentes
+  const { data: pendingBookings } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('tenant_id', tenant.id)
+    .eq('status', 'pending_approval')
+    .gte('starts_at', now.toISOString());
 
-  // 3. Aprovações pendentes
-  const [pendingCountResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(bookings)
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        eq(bookings.status, 'pending_approval'),
-        gte(bookings.startsAt, now)
-      )
-    );
-
-  // 4. Próximas reservas (Top 5)
-  const nextBookings = await db
-    .select({
-      id: bookings.id,
-      cliente: bookings.customerName,
-      quadra: resources.name,
-      startsAt: bookings.startsAt,
-      status: bookings.status,
-      valor: bookings.totalCents,
-    })
-    .from(bookings)
-    .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(
-      and(
-        eq(bookings.tenantId, tenant.id),
-        gte(bookings.startsAt, now)
-      )
-    )
-    .orderBy(asc(bookings.startsAt))
+  // Próximas reservas (Top 5)
+  const { data: nextRows } = await admin
+    .from('bookings')
+    .select('id, customer_name, starts_at, status, total_cents, resources(name)')
+    .eq('tenant_id', tenant.id)
+    .gte('starts_at', now.toISOString())
+    .order('starts_at')
     .limit(5);
 
-  const proximasReservas = nextBookings.map(b => {
-    const starts = b.startsAt;
-    let dataHora = '';
-    
-    const isToday = starts.toDateString() === now.toDateString();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = starts.toDateString() === tomorrow.toDateString();
+  const faturamentoMes = (monthBookings || []).reduce((s: number, b: any) => s + (b.total_cents || 0), 0) / 100;
+  const reservasHoje = todayBookings?.length || 0;
+  const aprovacoesPendentes = pendingBookings?.length || 0;
 
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const proximasReservas = (nextRows || []).map((b: any) => {
+    const starts = new Date(b.starts_at);
     const timeStr = starts.toISOString().substring(11, 16);
-
-    if (isToday) {
-      dataHora = `Hoje, ${timeStr}`;
-    } else if (isTomorrow) {
-      dataHora = `Amanhã, ${timeStr}`;
-    } else {
+    const isToday = starts.toDateString() === now.toDateString();
+    const isTomorrow = starts.toDateString() === tomorrow.toDateString();
+    let dataHora = '';
+    if (isToday) dataHora = `Hoje, ${timeStr}`;
+    else if (isTomorrow) dataHora = `Amanhã, ${timeStr}`;
+    else {
       const day = String(starts.getDate()).padStart(2, '0');
       const month = String(starts.getMonth() + 1).padStart(2, '0');
       dataHora = `${day}/${month}, ${timeStr}`;
     }
-
     return {
       id: b.id,
-      cliente: b.cliente,
-      quadra: b.quadra,
+      cliente: b.customer_name,
+      quadra: b.resources?.name ?? '',
       dataHora,
       status: b.status,
-      valor: b.valor / 100,
+      valor: (b.total_cents || 0) / 100,
     };
   });
-
-  const faturamentoMes = (faturamentoResult?.sum || 0) / 100;
-  const reservasHoje = todayCountResult?.count || 0;
-  const aprovacoesPendentes = pendingCountResult?.count || 0;
 
   return {
     kpis: {
@@ -116,22 +85,17 @@ export default defineEventHandler(async (event) => {
       faturamentoMes,
       faturamentoComparacao: '+0% vs mês passado',
       ocupacaoSemana: 0,
-      aprovacoesPendentes
+      aprovacoesPendentes,
     },
     proximasReservas,
     chartData: {
       labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
       datasets: [
-        {
-          label: 'Ocupação (%)',
-          data: [0, 0, 0, 0, 0, 0, 0],
-          backgroundColor: '#10B981',
-          borderRadius: 4
-        }
-      ]
+        { label: 'Ocupação (%)', data: [0, 0, 0, 0, 0, 0, 0], backgroundColor: '#10B981', borderRadius: 4 },
+      ],
     },
     timeline: [
-      { titulo: 'Cadastro completo', detalhe: 'Você terminou o onboarding!', tempo: 'Hoje', icon: 'pi pi-star', color: '#3B82F6' }
-    ]
+      { titulo: 'Cadastro completo', detalhe: 'Você terminou o onboarding!', tempo: 'Hoje', icon: 'pi pi-star', color: '#3B82F6' },
+    ],
   };
 });

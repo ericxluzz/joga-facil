@@ -11,13 +11,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
-const url = process.env.DATABASE_URL;
+import { resolveDatabaseUrl } from './resolve-database-url';
+
+const url = resolveDatabaseUrl();
 if (!url) {
   console.error('DATABASE_URL não definida. Configure no .env.');
   process.exit(1);
 }
 
-const client = postgres(url, { max: 1 });
+const client = postgres(url, { max: 1, prepare: false });
 const db = drizzle(client);
 
 const migrationsFolder = path.resolve(__dirname, '../drizzle');

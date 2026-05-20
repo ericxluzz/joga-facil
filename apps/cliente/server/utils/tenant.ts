@@ -1,9 +1,8 @@
 // Resolve tenant a partir do slug público (sem auth — landing pública)
-import { db } from '@agendaslim/db/client';
-import { tenants } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapTenant } from './supabase-admin';
 
 export async function getTenantBySlug(slug: string) {
-  const [tenant] = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
-  return tenant || null;
+  const admin = createSupabaseAdmin();
+  const { data: row } = await admin.from('tenants').select('*').eq('slug', slug).single();
+  return row ? mapTenant(row) : null;
 }

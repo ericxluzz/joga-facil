@@ -25,7 +25,7 @@ export const createHoldSchema = z.object({
   customerEmail: z.string().email().optional(),
   customerId: z.string().uuid().optional(), // se logado
   items: z.array(cartItemSchema).min(1).max(10),
-  paymentMethod: z.enum(['pix_upfront', 'pay_on_site']),
+  paymentMethod: z.enum(['pix_upfront', 'pay_on_site', 'deposit_plus_on_site']),
   customerNotes: z.string().max(1000).optional(),
 });
 
@@ -59,7 +59,7 @@ export interface BookingAdapter {
     startsAt: Date;
     endsAt: Date;
     totalCents: number;
-    paymentMethod: 'pix_upfront' | 'pay_on_site';
+    paymentMethod: 'pix_upfront' | 'pay_on_site' | 'deposit_plus_on_site';
     expiresAt: Date;
   }): Promise<{ id: string }>;
 

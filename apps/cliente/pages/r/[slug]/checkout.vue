@@ -126,7 +126,15 @@ async function confirm() {
     });
 
     if (form.method === 'pix_upfront') {
-      navigateTo({ path: `/r/${slug}/pix`, query: { paymentId: res.paymentId } });
+      navigateTo({
+        path: `/r/${slug}/pix`,
+        query: {
+          paymentId: res.paymentId,
+          pixCopiaCola: res.pixCopiaCola || '',
+          amountCents: String(res.amountCents || res.totalCents || ''),
+          expiresAt: res.expiresAt || '',
+        },
+      });
     } else {
       navigateTo({ path: `/r/${slug}/aguardando`, query: { bookingId: res.bookingId } });
     }

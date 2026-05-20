@@ -10,7 +10,7 @@
         <div class="qr-placeholder">
           <i class="pi pi-qrcode"></i>
         </div>
-        <p class="qr-amount">{{ formatBRL(cartTotal || 10000) }}</p>
+        <p class="qr-amount">{{ formatBRL(amountCents || cartTotal || 10000) }}</p>
       </div>
 
       <div class="copia-cola">
@@ -69,14 +69,20 @@ import { useIntervalFn } from '@vueuse/core';
 const route = useRoute();
 const slug = route.params.slug as string;
 const paymentId = route.query.paymentId as string;
+const pixCopiaCola = route.query.pixCopiaCola as string | undefined;
+const amountCents = route.query.amountCents ? Number(route.query.amountCents) : undefined;
+const expiresAt = route.query.expiresAt as string | undefined;
 
 const { cartTotal, clearCart, pollPayment } = useReserva();
 
 const status = ref<'pending' | 'paid' | 'expired' | 'failed'>('pending');
-const pixCode = ref(
-  '00020126360014BR.GOV.BCB.PIX0114agendaslim@example52040000530398654041.005802BR5925AGENDA SLIM PAGAMENTOS6009SAO PAULO62070503***6304ABCD',
-);
-const secondsLeft = ref(15 * 60);
+const pixCode = ref(pixCopiaCola || '');
+
+// Calcula segundos restantes a partir de expiresAt ou usa 15min por padrão
+const initialSeconds = expiresAt
+  ? Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
+  : 15 * 60;
+const secondsLeft = ref(initialSeconds);
 
 const formattedTimer = computed(() => {
   const m = Math.floor(secondsLeft.value / 60);

@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { bookings, services } from '@agendaslim/db/schema';
-import { eq } from 'drizzle-orm';
+import { createSupabaseAdmin, mapBooking } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -14,42 +12,51 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Faltam campos obrigatórios' });
   }
 
+  const admin = createSupabaseAdmin();
+
+  // Busca ou cria service padrão
+  const { data: existingServices } = await admin
+    .from('services')
+    .select('id')
+    .eq('tenant_id', tenant.id)
+    .limit(1);
+
   let serviceId: string;
-  const existingServices = await db.select().from(services).where(eq(services.tenantId, tenant.id)).limit(1);
-  if (existingServices[0]) {
+  if (existingServices?.[0]) {
     serviceId = existingServices[0].id;
   } else {
-    const [defaultSvc] = await db
-      .insert(services)
-      .values({
-        tenantId: tenant.id,
+    const { data: newSvc, error: svcError } = await admin
+      .from('services')
+      .insert({
+        tenant_id: tenant.id,
         name: 'Reserva Manual',
-        durationMinutes: 60,
-        basePriceCents: 10000,
+        duration_minutes: 60,
+        base_price_cents: 10000,
         active: true,
       })
-      .returning();
-    serviceId = defaultSvc.id;
+      .select('id')
+      .single();
+    if (svcError) throw createError({ statusCode: 500, message: svcError.message });
+    serviceId = newSvc!.id;
   }
 
-  const startsAt = new Date(`${body.date}T${body.startTime}:00`);
-  const endsAt = new Date(`${body.date}T${body.endTime}:00`);
-
-  const [newBooking] = await db
-    .insert(bookings)
-    .values({
-      tenantId: tenant.id,
-      resourceId: body.resourceId,
-      serviceId,
-      customerName: body.customerName,
-      customerPhone: body.customerPhone || '',
-      startsAt,
-      endsAt,
-      totalCents: body.priceCents || 10000,
+  const { data: newBooking, error } = await admin
+    .from('bookings')
+    .insert({
+      tenant_id: tenant.id,
+      resource_id: body.resourceId,
+      service_id: serviceId,
+      customer_name: body.customerName,
+      customer_phone: body.customerPhone || '',
+      starts_at: new Date(`${body.date}T${body.startTime}:00`).toISOString(),
+      ends_at: new Date(`${body.date}T${body.endTime}:00`).toISOString(),
+      total_cents: body.priceCents || 10000,
       status: body.status || 'confirmed',
-      paymentMethod: 'pay_on_site',
+      payment_method: 'pay_on_site',
     })
-    .returning();
+    .select()
+    .single();
 
-  return { success: true, booking: newBooking };
+  if (error) throw createError({ statusCode: 500, message: error.message });
+  return { success: true, booking: mapBooking(newBooking!) };
 });

@@ -2,6 +2,7 @@
 import { getTenantBySlug } from '../../../utils/tenant';
 import { makeDbBookingAdapter } from '../../../utils/booking-adapter';
 import { createHold } from '@agendaslim/core/bookings';
+import { normalizeCheckoutMethod } from '../../../utils/payments/checkout';
 
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug');
@@ -23,6 +24,7 @@ export default defineEventHandler(async (event) => {
   const adapter = makeDbBookingAdapter(serviceId);
   const settings = (tenant.settings as any) || {};
   const holdMinutes = settings.holdMinutes ?? 10;
+  const paymentMethod = normalizeCheckoutMethod(body.method);
 
   try {
     const result = await createHold(
@@ -39,7 +41,7 @@ export default defineEventHandler(async (event) => {
           endsAt: new Date(s.endsAt),
           priceCents: s.priceCents,
         })),
-        paymentMethod: body.method || 'pix_upfront',
+        paymentMethod,
         customerNotes: body.notes,
       },
       holdMinutes,

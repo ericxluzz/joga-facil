@@ -1,7 +1,5 @@
 import { getActiveTenant } from '../../utils/tenant';
-import { db } from '@agendaslim/db/client';
-import { bookings, resources } from '@agendaslim/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { createSupabaseAdmin } from '../../utils/supabase-admin';
 
 export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
@@ -9,53 +7,44 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
+  const admin = createSupabaseAdmin();
   const query = getQuery(event);
-  
-  const conditions = [eq(bookings.tenantId, tenant.id)];
+
+  let q = admin
+    .from('bookings')
+    .select('id, resource_id, customer_name, customer_phone, starts_at, ends_at, status, total_cents, resources(name)')
+    .eq('tenant_id', tenant.id)
+    .order('starts_at');
 
   if (query.date) {
-    // query.date format is 'YYYY-MM-DD'
-    conditions.push(sql`DATE(${bookings.startsAt} AT TIME ZONE ${tenant.timezone}) = ${query.date}`);
+    // Filter by date using gte/lte on starts_at
+    const dateStr = query.date as string;
+    q = q
+      .gte('starts_at', `${dateStr}T00:00:00`)
+      .lte('starts_at', `${dateStr}T23:59:59`);
   }
 
   if (query.status) {
-    conditions.push(eq(bookings.status, query.status as any));
+    q = q.eq('status', query.status as string);
   }
 
-  const result = await db
-    .select({
-      id: bookings.id,
-      resourceId: bookings.resourceId,
-      resourceName: resources.name,
-      customerName: bookings.customerName,
-      customerPhone: bookings.customerPhone,
-      startsAt: bookings.startsAt,
-      endsAt: bookings.endsAt,
-      status: bookings.status,
-      priceCents: bookings.totalCents,
-    })
-    .from(bookings)
-    .innerJoin(resources, eq(bookings.resourceId, resources.id))
-    .where(and(...conditions))
-    .orderBy(bookings.startsAt);
+  const { data: result, error } = await q;
+  if (error) throw createError({ statusCode: 500, message: error.message });
 
-  const mapped = result.map(b => {
-    // Extract times (HH:MM)
-    const startTime = b.startsAt.toISOString().substring(11, 16);
-    const endTime = b.endsAt.toISOString().substring(11, 16);
-    const dateStr = b.startsAt.toISOString().substring(0, 10);
-
+  const mapped = (result || []).map((b: any) => {
+    const startsAt = new Date(b.starts_at);
+    const endsAt = new Date(b.ends_at);
     return {
       id: b.id,
-      resourceId: b.resourceId,
-      resourceName: b.resourceName,
-      customerName: b.customerName,
-      customerPhone: b.customerPhone,
-      date: dateStr,
-      startTime,
-      endTime,
+      resourceId: b.resource_id,
+      resourceName: b.resources?.name ?? '',
+      customerName: b.customer_name,
+      customerPhone: b.customer_phone,
+      date: startsAt.toISOString().substring(0, 10),
+      startTime: startsAt.toISOString().substring(11, 16),
+      endTime: endsAt.toISOString().substring(11, 16),
       status: b.status,
-      priceCents: b.priceCents,
+      priceCents: b.total_cents,
     };
   });
 
