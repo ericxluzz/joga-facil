@@ -117,7 +117,7 @@ async function onSubmit() {
 
   if (config.public.mockAuth) {
     await new Promise(r => setTimeout(r, 500));
-    await navigateTo('/dashboard');
+    await navigateTo('/painel');
     loading.value = false;
     return;
   }
@@ -132,32 +132,32 @@ async function onSubmit() {
     messageType.value = 'error';
     message.value = 'Credenciais inválidas. Tente novamente.';
   } else {
-    navigateTo('/dashboard');
+    navigateTo('/painel');
   }
 }
 
 async function loginWithGoogle() {
   if (config.public.mockAuth) {
-    navigateTo('/dashboard');
+    navigateTo('/painel');
     return;
   }
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/dashboard`
+      redirectTo: `${window.location.origin}/painel`
     }
   });
 }
 
 async function loginWithApple() {
   if (config.public.mockAuth) {
-    navigateTo('/dashboard');
+    navigateTo('/painel');
     return;
   }
   await supabase.auth.signInWithOAuth({
     provider: 'apple',
     options: {
-      redirectTo: `${window.location.origin}/dashboard`
+      redirectTo: `${window.location.origin}/painel`
     }
   });
 }

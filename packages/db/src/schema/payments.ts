@@ -17,7 +17,7 @@ export const payments = pgTable(
       .notNull()
       .references(() => bookings.id, { onDelete: 'cascade' }),
 
-    provider: varchar('provider', { length: 32 }).notNull().default('abacatepay'),
+    provider: varchar('provider', { length: 32 }).notNull().default('validapay'),
     providerPaymentId: varchar('provider_payment_id', { length: 100 }),
     providerAccountId: varchar('provider_account_id', { length: 100 }),
     amountCents: integer('amount_cents').notNull(),

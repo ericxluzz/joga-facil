@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, varchar, pgEnum, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, varchar, boolean, pgEnum, unique } from 'drizzle-orm/pg-core';
 import { tenants } from './tenants';
 
 export const userRoleEnum = pgEnum('user_role', ['owner', 'operator', 'customer']);
@@ -10,6 +10,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   fullName: varchar('full_name', { length: 200 }),
   phone: varchar('phone', { length: 32 }),
+  isPlatformAdmin: boolean('is_platform_admin').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

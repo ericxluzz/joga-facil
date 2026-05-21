@@ -1,14 +1,45 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { serverSupabaseClient } from '#supabase/server';
+import type { H3Event } from 'h3';
 
-export function createSupabaseAdmin() {
+/**
+ * Returns a Supabase client for server-side use.
+ * - When SUPABASE_SERVICE_ROLE_KEY is valid: singleton service role client (bypasses RLS).
+ * - Otherwise: uses the authenticated user's session per-request (respects RLS).
+ *   Requires `event` in that case.
+ */
+let _serviceRoleClient: SupabaseClient | null = null;
+
+export async function createSupabaseAdmin(event?: H3Event) {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error(
-      'SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórios. Configure as variáveis de ambiente.',
-    );
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url) {
+    throw new Error('SUPABASE_URL é obrigatório. Configure a variável de ambiente.');
   }
-  return createClient(url, key, {
+
+  const isValidServiceKey =
+    serviceKey && serviceKey.length > 100 && !serviceKey.startsWith('COLE_');
+
+  if (isValidServiceKey) {
+    if (!_serviceRoleClient) {
+      _serviceRoleClient = createClient(url, serviceKey!, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        db: { schema: 'public' },
+      });
+    }
+    return _serviceRoleClient;
+  }
+
+  if (event) {
+    return serverSupabaseClient(event);
+  }
+
+  const anonKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!anonKey) {
+    throw new Error('SUPABASE_KEY é obrigatório. Configure a variável de ambiente.');
+  }
+  return createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: 'public' },
   });

@@ -11,7 +11,7 @@ export default defineEventHandler(async () => {
 
   if (hasSupabase) {
     try {
-      const admin = createSupabaseAdmin();
+      const admin = await createSupabaseAdmin();
       const { error } = await admin.from('tenants').select('id').limit(1);
       if (error) throw new Error(error.message);
       dbOk = true;
@@ -28,7 +28,7 @@ export default defineEventHandler(async () => {
       hasSupabaseKey: hasSupabaseAnon,
       hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       hasValidapay: !!(process.env.VALIDAPAY_ACCESS_TOKEN || process.env.VALIDAPAY_CLIENT_ID),
-      hasAbacatepay: !!process.env.ABACATEPAY_API_KEY,
+      validapayEnv: process.env.VALIDAPAY_ENV || 'sandbox',
       nodeEnv: process.env.NODE_ENV,
       vercel: !!process.env.VERCEL,
     },

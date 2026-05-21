@@ -30,12 +30,41 @@ export default defineEventHandler(async (event) => {
     targetResourceId = firstRes.id;
   }
 
-  // Serviço padrão
-  const { data: svcList } = await admin
-    .from('services')
-    .select('*')
-    .eq('tenant_id', tenant.id)
-    .eq('active', true);
+  // Dispara todas as queries independentes em paralelo
+  const dayStart = `${date}T00:00:00`;
+  const dayEnd = `${date}T23:59:59`;
+
+  const [
+    { data: svcList },
+    { data: rulesData },
+    { data: blocksData },
+    { data: existingBookingsData },
+  ] = await Promise.all([
+    admin
+      .from('services')
+      .select('id, resource_id, duration_minutes, base_price_cents')
+      .eq('tenant_id', tenant.id)
+      .eq('active', true),
+    admin
+      .from('schedule_rules')
+      .select('weekday, start_time, end_time, price_modifier')
+      .eq('resource_id', targetResourceId)
+      .eq('active', true),
+    admin
+      .from('blocks')
+      .select('starts_at, ends_at')
+      .eq('tenant_id', tenant.id)
+      .or(`resource_id.eq.${targetResourceId},resource_id.is.null`)
+      .gte('ends_at', dayStart)
+      .lte('starts_at', dayEnd),
+    admin
+      .from('bookings')
+      .select('starts_at, ends_at')
+      .eq('resource_id', targetResourceId)
+      .in('status', ['hold', 'pending_approval', 'confirmed'])
+      .gte('ends_at', dayStart)
+      .lte('starts_at', dayEnd),
+  ]);
 
   const service =
     (svcList || []).find((s: any) => s.resource_id === targetResourceId) ||
@@ -43,36 +72,10 @@ export default defineEventHandler(async (event) => {
     (svcList || [])[0];
   if (!service) return { slug, date, resourceId: targetResourceId, slots: [] };
 
-  // Regras de horário
-  const { data: rulesData } = await admin
-    .from('schedule_rules')
-    .select('weekday, start_time, end_time, price_modifier')
-    .eq('resource_id', targetResourceId)
-    .eq('active', true);
-
-  // Bloqueios do dia
-  const dayStart = `${date}T00:00:00`;
-  const dayEnd = `${date}T23:59:59`;
-
-  const { data: blocksData } = await admin
-    .from('blocks')
-    .select('starts_at, ends_at')
-    .eq('tenant_id', tenant.id)
-    .or(`resource_id.eq.${targetResourceId},resource_id.is.null`)
-    .gte('ends_at', dayStart)
-    .lte('starts_at', dayEnd);
-
-  // Reservas existentes
-  const { data: existingBookingsData } = await admin
-    .from('bookings')
-    .select('starts_at, ends_at')
-    .eq('resource_id', targetResourceId)
-    .in('status', ['hold', 'pending_approval', 'confirmed'])
-    .gte('ends_at', dayStart)
-    .lte('starts_at', dayEnd);
-
   const settings = (tenant.settings as any) || {};
-  const slots = getAvailableSlots({
+  let slots: ReturnType<typeof getAvailableSlots>;
+  try {
+    slots = getAvailableSlots({
     date,
     timezone: tenant.timezone,
     durationMinutes: service.duration_minutes,
@@ -93,7 +96,11 @@ export default defineEventHandler(async (event) => {
     })),
     minAdvanceMinutes: settings.minAdvanceMinutes ?? 60,
     maxAdvanceDays: settings.maxAdvanceDays ?? 30,
-  });
+    });
+  } catch (err) {
+    console.error('[slots.get] getAvailableSlots failed:', err);
+    throw createError({ statusCode: 500, message: 'Erro ao calcular horários disponíveis' });
+  }
 
   return {
     slug,

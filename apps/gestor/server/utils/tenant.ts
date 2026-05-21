@@ -3,7 +3,7 @@ import { createSupabaseAdmin, mapTenant } from './supabase-admin';
 import { H3Event } from 'h3';
 
 export async function getActiveTenant(event: H3Event) {
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
 
   if (process.env.MOCK_AUTH === '1') {
     const { data: rows } = await admin.from('tenants').select('*').limit(1);
@@ -57,7 +57,7 @@ export async function getActiveTenant(event: H3Event) {
   const { data: tenant } = await admin
     .from('tenants')
     .select('*')
-    .eq('id', links[0].tenant_id)
+    .eq('id', (links[0] as any).tenant_id)
     .single();
 
   return tenant ? mapTenant(tenant) : null;

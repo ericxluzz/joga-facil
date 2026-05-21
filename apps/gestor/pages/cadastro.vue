@@ -117,7 +117,7 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import Message from 'primevue/message';
 import Divider from 'primevue/divider';
-import { useSupabaseClient, useRuntimeConfig, navigateTo, definePageMeta } from '#imports';
+import { useSupabaseClient, useRuntimeConfig, navigateTo, definePageMeta, useFetch } from '#imports';
 
 definePageMeta({ layout: 'auth' });
 
@@ -154,26 +154,54 @@ async function onSubmit() {
     return;
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email: form.email,
-    password: form.password,
-    options: {
-      data: {
-        full_name: form.name,
-        document: form.document,
-        phone: form.phone,
-      }
-    }
-  });
+  try {
+    const result = await $fetch<{ access_token?: string; refresh_token?: string; needsConfirmation?: boolean }>(
+      '/api/auth/signup',
+      {
+        method: 'POST',
+        body: {
+          email: form.email,
+          password: form.password,
+          name: form.name,
+          document: form.document,
+          phone: form.phone,
+        },
+      },
+    );
 
-  loading.value = false;
-  
-  if (error) {
+    if (result.needsConfirmation) {
+      messageType.value = 'success';
+      message.value = 'Conta criada! Verifique seu e-mail para confirmar o cadastro e depois faça login.';
+      loading.value = false;
+      return;
+    }
+
+    // Servidor retornou os tokens — define a sessão no cliente diretamente
+    if (result.access_token && result.refresh_token) {
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      });
+
+      loading.value = false;
+
+      if (sessionError) {
+        messageType.value = 'error';
+        message.value = 'Conta criada, mas não foi possível entrar automaticamente. Faça login.';
+        return;
+      }
+
+      await navigateTo('/onboarding');
+      return;
+    }
+
+    loading.value = false;
     messageType.value = 'error';
-    message.value = error.message;
-  } else {
-    // Navigate to onboarding to complete tenant profile
-    navigateTo('/onboarding');
+    message.value = 'Resposta inesperada do servidor. Tente fazer login.';
+  } catch (err: any) {
+    loading.value = false;
+    messageType.value = 'error';
+    message.value = err?.data?.message || err?.message || 'Erro ao criar conta';
   }
 }
 </script>

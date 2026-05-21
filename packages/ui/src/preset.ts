@@ -47,18 +47,27 @@ export const agendaSlimPreset = definePreset(Aura, {
       },
       dark: {
         surface: {
-          0: '#020617',
-          50: '#0F172A',
-          100: '#1E293B',
-          200: '#334155',
-          300: '#475569',
-          400: '#64748B',
-          500: '#94A3B8',
-          600: '#CBD5E1',
-          700: '#E2E8F0',
-          800: '#F1F5F9',
-          900: '#F8FAFC',
-          950: '#FFFFFF',
+          0: '#1E293B',   // cards / componentes elevados (mais claro que o fundo)
+          50: '#0F172A',  // fundo da página (mais escuro)
+          100: '#243044', // bg de inputs, hover states
+          200: '#334155', // bordas
+          300: '#475569', // bordas sutis
+          400: '#64748B', // placeholder / desabilitado
+          500: '#94A3B8', // texto secundário/muted
+          600: '#CBD5E1', // ícones
+          700: '#E2E8F0', // texto secundário forte
+          800: '#F1F5F9', // texto normal
+          900: '#F8FAFC', // texto principal
+          950: '#FFFFFF', // branco puro
+        },
+        formField: {
+          background: '{surface.100}',
+          borderColor: '{surface.200}',
+          borderRadius: tokens.radius.md,
+        },
+        text: {
+          color: '{surface.900}',
+          mutedColor: '{surface.500}',
         },
       },
     },
@@ -69,9 +78,180 @@ export const agendaSlimPreset = definePreset(Aura, {
     },
     card: {
       borderRadius: tokens.radius.lg,
+      colorScheme: {
+        dark: {
+          root: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+          },
+        },
+      },
+    },
+    datatable: {
+      colorScheme: {
+        dark: {
+          header: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          row: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            stripedBackground: '{surface.50}',
+            hoverBackground: '{surface.100}',
+            hoverColor: '{surface.900}',
+          },
+          footer: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          bodyCell: {
+            borderColor: '{surface.200}',
+          },
+          columnTitle: {
+            fontWeight: '600',
+          },
+        },
+      },
+    },
+    dialog: {
+      borderRadius: tokens.radius.lg,
+      colorScheme: {
+        dark: {
+          root: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          header: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+          },
+          content: {
+            background: '{surface.0}',
+          },
+          footer: {
+            background: '{surface.0}',
+          },
+        },
+      },
+    },
+    popover: {
+      borderRadius: tokens.radius.lg,
+      colorScheme: {
+        dark: {
+          root: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+        },
+      },
+    },
+    select: {
+      borderRadius: tokens.radius.md,
+      colorScheme: {
+        dark: {
+          overlay: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          option: {
+            focusBackground: '{surface.100}',
+            selectedBackground: '{surface.100}',
+            color: '{surface.900}',
+          },
+        },
+      },
+    },
+    multiselect: {
+      borderRadius: tokens.radius.md,
+      colorScheme: {
+        dark: {
+          overlay: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          option: {
+            focusBackground: '{surface.100}',
+            color: '{surface.900}',
+          },
+        },
+      },
+    },
+    datepicker: {
+      borderRadius: tokens.radius.md,
+      colorScheme: {
+        dark: {
+          panel: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          header: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+          },
+          tableHeaderCell: {
+            color: '{surface.700}',
+          },
+          date: {
+            hoverBackground: '{surface.100}',
+            hoverColor: '{surface.900}',
+            selectedBackground: '{primary.500}',
+          },
+        },
+      },
+    },
+    panel: {
+      borderRadius: tokens.radius.lg,
+      colorScheme: {
+        dark: {
+          root: {
+            background: '{surface.0}',
+            color: '{surface.900}',
+            borderColor: '{surface.200}',
+          },
+          header: {
+            background: '{surface.0}',
+          },
+          content: {
+            background: '{surface.0}',
+          },
+          footer: {
+            background: '{surface.0}',
+          },
+        },
+      },
     },
     inputtext: {
       borderRadius: tokens.radius.md,
+    },
+    message: {
+      borderRadius: tokens.radius.md,
+    },
+    tag: {
+      borderRadius: tokens.radius.md,
+    },
+    selectbutton: {
+      colorScheme: {
+        dark: {
+          root: {
+            background: '{surface.0}',
+            borderColor: '{surface.200}',
+          },
+          option: {
+            background: 'transparent',
+            color: '{surface.700}',
+            selectedBackground: '{surface.100}',
+            selectedColor: '{surface.900}',
+          },
+        },
+      },
     },
   },
 });

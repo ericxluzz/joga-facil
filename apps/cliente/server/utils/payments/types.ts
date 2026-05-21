@@ -1,6 +1,6 @@
 import type { PaymentStatus } from '@agendaslim/db/schema';
 
-export type PaymentProviderName = 'abacatepay' | 'validapay';
+export type PaymentProviderName = 'validapay';
 
 export type CheckoutPaymentMethod =
   | 'pix_upfront'
@@ -15,7 +15,6 @@ export type PaymentCustomer = {
 };
 
 export type CreateProviderPixChargeInput = {
-  provider: PaymentProviderName;
   providerAccountId?: string;
   amountCents: number;
   sellerAmountCents: number;
@@ -28,7 +27,6 @@ export type CreateProviderPixChargeInput = {
 };
 
 export type ProviderPixCharge = {
-  provider: PaymentProviderName;
   providerPaymentId: string;
   providerAccountId?: string | null;
   amountCents: number;

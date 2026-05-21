@@ -27,7 +27,6 @@
             </template>
           </Column>
           <Column field="resourceName" header="Quadra" />
-          <Column field="serviceName" header="Serviço" />
           <Column header="Horário">
             <template #body="slotProps">
               <div class="time-info">
@@ -222,4 +221,13 @@ function formatDate(dateStr: string) {
 }
 
 .mb-2 { margin-bottom: 0.5rem; }
+
+@media (max-width: 768px) {
+  .page-header { margin-bottom: 1rem; }
+  .table-card :deep(.p-datatable-tbody td),
+  .table-card :deep(.p-datatable-thead th) {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+}
 </style>

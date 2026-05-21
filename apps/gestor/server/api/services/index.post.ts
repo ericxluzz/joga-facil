@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'name, durationMinutes e basePriceCents são obrigatórios' });
   }
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const { data, error } = await admin
     .from('services')
     .insert({

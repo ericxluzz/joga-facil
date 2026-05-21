@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const mergedSettings = { ...tenant.settings, ...(body.settings || {}) };
 
   const { data: updated, error } = await admin

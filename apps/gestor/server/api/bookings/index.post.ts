@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Faltam campos obrigatórios' });
   }
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
 
   // Busca ou cria service padrão
   const { data: existingServices } = await admin

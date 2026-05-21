@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   if (!body.name) throw createError({ statusCode: 400, message: 'name é obrigatório' });
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const { data, error } = await admin
     .from('resources')
     .insert({

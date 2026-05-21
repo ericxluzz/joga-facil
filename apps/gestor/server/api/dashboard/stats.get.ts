@@ -7,47 +7,50 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
-  // Reservas de hoje
-  const { data: todayBookings } = await admin
-    .from('bookings')
-    .select('id')
-    .eq('tenant_id', tenant.id)
-    .neq('status', 'cancelled')
-    .gte('starts_at', startOfDay)
-    .lte('starts_at', endOfDay);
+  const [
+    { data: todayBookings },
+    { data: monthBookings },
+    { data: pendingBookings },
+    { data: nextRows },
+  ] = await Promise.all([
+    admin
+      .from('bookings')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .neq('status', 'cancelled')
+      .gte('starts_at', startOfDay)
+      .lte('starts_at', endOfDay),
 
-  // Faturamento do mês (bookings confirmadas)
-  const { data: monthBookings } = await admin
-    .from('bookings')
-    .select('total_cents')
-    .eq('tenant_id', tenant.id)
-    .eq('status', 'confirmed')
-    .gte('starts_at', startOfMonth)
-    .lte('starts_at', endOfMonth);
+    admin
+      .from('bookings')
+      .select('total_cents')
+      .eq('tenant_id', tenant.id)
+      .eq('status', 'confirmed')
+      .gte('starts_at', startOfMonth)
+      .lte('starts_at', endOfMonth),
 
-  // Aprovações pendentes
-  const { data: pendingBookings } = await admin
-    .from('bookings')
-    .select('id')
-    .eq('tenant_id', tenant.id)
-    .eq('status', 'pending_approval')
-    .gte('starts_at', now.toISOString());
+    admin
+      .from('bookings')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('status', 'pending_approval')
+      .gte('starts_at', now.toISOString()),
 
-  // Próximas reservas (Top 5)
-  const { data: nextRows } = await admin
-    .from('bookings')
-    .select('id, customer_name, starts_at, status, total_cents, resources(name)')
-    .eq('tenant_id', tenant.id)
-    .gte('starts_at', now.toISOString())
-    .order('starts_at')
-    .limit(5);
+    admin
+      .from('bookings')
+      .select('id, customer_name, starts_at, status, total_cents, resources(name)')
+      .eq('tenant_id', tenant.id)
+      .gte('starts_at', now.toISOString())
+      .order('starts_at')
+      .limit(5),
+  ]);
 
   const faturamentoMes = (monthBookings || []).reduce((s: number, b: any) => s + (b.total_cents || 0), 0) / 100;
   const reservasHoje = todayBookings?.length || 0;

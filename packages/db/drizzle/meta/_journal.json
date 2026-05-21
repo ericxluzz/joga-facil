@@ -15,6 +15,20 @@
       "when": 1779226000000,
       "tag": "0001_add_validapay_split_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779240000000,
+      "tag": "0002_validapay_subaccounts_kyc",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748390400000,
+      "tag": "0003_perf_indexes",
+      "breakpoints": true
     }
   ]
 }

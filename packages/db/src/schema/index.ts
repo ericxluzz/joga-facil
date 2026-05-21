@@ -12,3 +12,7 @@ export * from './bookings';
 export * from './payments';
 export * from './webhook-events';
 export * from './audit-log';
+export * from './tenant-payment-accounts';
+export * from './tenant-payment-documents';
+export * from './withdrawals';
+export * from './platform-settings';

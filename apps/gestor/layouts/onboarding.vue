@@ -3,8 +3,8 @@
     <!-- Header fixo -->
     <header class="onboarding-header">
       <div class="brand">
-        <i class="pi pi-calendar brand-icon"></i>
-        <span class="brand-name">Agenda-Slim</span>
+        <AppLogo :size="30" />
+        <span class="brand-name">Joga Fácil</span>
       </div>
       <Button
         label="Sair"
@@ -23,7 +23,7 @@
 
     <!-- Rodapé -->
     <footer class="onboarding-footer">
-      <span>© 2026 Agenda-Slim · ericxluzz</span>
+      <span>© 2026 Joga Fácil · ericxluzz</span>
     </footer>
   </div>
 </template>

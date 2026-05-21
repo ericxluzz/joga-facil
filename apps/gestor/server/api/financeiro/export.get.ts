@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
   if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const query = getQuery(event);
   const fromStr = (query.from as string) || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
   const toStr = (query.to as string) || new Date().toISOString().substring(0, 10);
@@ -35,6 +35,6 @@ export default defineEventHandler(async (event) => {
   const csv = [header, ...rows].map((row) => row.join(';')).join('\n');
 
   setHeader(event, 'content-type', 'text/csv; charset=utf-8');
-  setHeader(event, 'content-disposition', `attachment; filename="agenda-slim-financeiro-${fromStr}_${toStr}.csv"`);
+  setHeader(event, 'content-disposition', `attachment; filename="joga-facil-financeiro-${fromStr}_${toStr}.csv"`);
   return csv;
 });

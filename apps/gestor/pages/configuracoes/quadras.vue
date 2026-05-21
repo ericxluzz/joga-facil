@@ -199,4 +199,10 @@ async function confirmDelete(resource: any) {
 .mb-2 { margin-bottom: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
 .w-full { width: 100%; }
+
+@media (max-width: 640px) {
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .table-card :deep(.p-datatable-tbody td),
+  .table-card :deep(.p-datatable-thead th) { font-size: 0.8rem; padding: 0.5rem; }
+}
 </style>

@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'resourceId é obrigatório' });
   }
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
 
   // Delete existing rules for this resource
   await admin.from('schedule_rules').delete().eq('resource_id', resourceId);

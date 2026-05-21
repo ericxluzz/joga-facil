@@ -3,7 +3,7 @@
 import type { BookingAdapter } from '@agendaslim/core';
 import { createSupabaseAdmin } from './supabase-admin';
 
-export function makeDbBookingAdapter(serviceId: string): BookingAdapter {
+export function makeDbBookingAdapter(serviceId: string | null): BookingAdapter {
   const admin = createSupabaseAdmin();
 
   return {
@@ -13,7 +13,7 @@ export function makeDbBookingAdapter(serviceId: string): BookingAdapter {
         .insert({
           tenant_id: args.tenantId,
           resource_id: args.resourceId,
-          service_id: serviceId,
+          service_id: args.serviceId,
           customer_id: args.customerId ?? null,
           customer_name: args.customerName,
           customer_phone: args.customerPhone,

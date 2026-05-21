@@ -40,7 +40,7 @@ export const useFinanceiro = () => {
     const url = URL.createObjectURL(blob as unknown as Blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `agenda-slim-financeiro-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `joga-facil-financeiro-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

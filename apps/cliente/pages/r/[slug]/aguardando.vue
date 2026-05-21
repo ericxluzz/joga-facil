@@ -10,16 +10,19 @@
         e-mail e WhatsApp.
       </p>
 
-      <div class="info-card">
-        <div class="info-row">
-          <span class="label">Limite</span>
-          <strong>60 minutos</strong>
-        </div>
-        <div class="info-row">
-          <span class="label">Status</span>
-          <Tag value="Pendente" severity="warn" />
-        </div>
-      </div>
+      <Card class="info-card">
+        <template #content>
+          <div class="info-row flex justify-content-between align-items-center py-2">
+            <span class="label">Limite</span>
+            <strong>60 minutos</strong>
+          </div>
+          <Divider />
+          <div class="info-row flex justify-content-between align-items-center py-2">
+            <span class="label">Status</span>
+            <Tag value="Pendente" severity="warn" />
+          </div>
+        </template>
+      </Card>
 
       <Button label="Ver minhas reservas" outlined size="large" class="cta" @click="navigateTo('/minhas-reservas')" />
       <Button label="Voltar pra página inicial" text size="small" @click="navigateTo(`/r/${slug}`)" />
@@ -28,9 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import Button from 'primevue/button';
-import Tag from 'primevue/tag';
-
 const route = useRoute();
 const slug = route.params.slug as string;
 </script>
@@ -64,19 +64,9 @@ p {
 }
 
 .info-card {
-  background: var(--p-surface-0);
-  border: 1px solid var(--p-surface-200);
-  border-radius: 1rem;
-  padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
+  text-align: left;
 }
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-}
-.info-row + .info-row { border-top: 1px solid var(--p-surface-100); }
 .label { font-size: 0.85rem; color: var(--p-text-color-secondary); }
 
 .cta { width: 100%; margin-bottom: 0.5rem; }

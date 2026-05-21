@@ -5,8 +5,8 @@ const mockAuth = config.public.mockAuth;
 
 // Em produção redireciona pra login; em mock dev vai pro dashboard
 onMounted(async () => {
-  if (mockAuth) return navigateTo('/dashboard');
-  if (user.value) return navigateTo('/dashboard');
+  if (mockAuth) return navigateTo('/painel');
+  if (user.value) return navigateTo('/painel');
   return navigateTo('/login');
 });
 </script>

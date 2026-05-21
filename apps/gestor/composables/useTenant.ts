@@ -35,3 +35,24 @@ export const useTenant = () => {
 
   return { tenant, loading, fetchTenant, createTenant, updateSettings };
 };
+
+// Versão SSR-friendly que usa useAsyncData e cache compartilhado.
+// Use em páginas críticas dentro do <script setup>.
+export const useTenantAsync = () => {
+  const tenant = useState<any>('currentTenant', () => null);
+  const promise = useAsyncData(
+    'tenant',
+    async () => {
+      try {
+        const data = await $fetch<any>('/api/tenant');
+        tenant.value = data;
+        return data;
+      } catch {
+        tenant.value = null;
+        return null;
+      }
+    },
+    { server: false, default: () => tenant.value },
+  );
+  return { tenant, ...promise };
+};

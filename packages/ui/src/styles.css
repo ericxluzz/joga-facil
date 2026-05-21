@@ -1,4 +1,4 @@
-/* Estilos globais do Agenda-Slim */
+/* Estilos globais do Joga Fácil */
 @import 'primeicons/primeicons.css';
 
 :root {
@@ -12,6 +12,34 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
   padding: 0;
+  background: var(--p-surface-50);
+  color: var(--p-text-color);
+  transition: background 0.15s, color 0.15s;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Em dark mode o fundo da página é surface-50 (mais escuro que os cards) */
+html.dark body,
+html.dark .layout {
+  background: var(--p-surface-50) !important;
+}
+
+/* Garante que inputs/textareas em dark fiquem visíveis */
+html.dark .p-inputtext,
+html.dark .p-textarea,
+html.dark .p-inputnumber-input {
+  background-color: var(--p-surface-100) !important;
+  border-color: var(--p-surface-200) !important;
+  color: var(--p-surface-900) !important;
+}
+
+html.dark .p-inputtext:focus,
+html.dark .p-textarea:focus {
+  border-color: var(--p-primary-400) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -67,3 +95,161 @@ button {
   border-radius: 8px !important;
 }
 
+/* ─── Dark mode: safety-net para componentes PrimeVue ─────────────────────── */
+/* Garante que Card, DataTable, Dialog, Popover, Select fiquem escuros         */
+/* mesmo que o preset component override não propague corretamente             */
+
+html.dark .p-card,
+html.dark .p-card .p-card-body,
+html.dark .p-card .p-card-header,
+html.dark .p-card .p-card-content,
+html.dark .p-card .p-card-footer {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+}
+
+html.dark .p-datatable,
+html.dark .p-datatable-table-container {
+  background: var(--p-surface-0);
+}
+
+html.dark .p-datatable-thead > tr > th {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-datatable-tbody > tr {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+}
+
+html.dark .p-datatable-tbody > tr:nth-child(even) {
+  background: var(--p-surface-50) !important;
+}
+
+html.dark .p-datatable-tbody > tr:hover {
+  background: var(--p-surface-100) !important;
+}
+
+html.dark .p-datatable-tbody > tr > td {
+  border-color: var(--p-surface-200) !important;
+  color: var(--p-text-color) !important;
+}
+
+html.dark .p-datatable-tfoot > tr > td {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+}
+
+html.dark .p-dialog,
+html.dark .p-dialog .p-dialog-header,
+html.dark .p-dialog .p-dialog-content,
+html.dark .p-dialog .p-dialog-footer {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-popover {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-select-overlay,
+html.dark .p-multiselect-overlay,
+html.dark .p-autocomplete-overlay {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-select-option,
+html.dark .p-multiselect-option {
+  color: var(--p-text-color) !important;
+}
+
+html.dark .p-select-option:hover,
+html.dark .p-select-option.p-focus,
+html.dark .p-multiselect-option:hover,
+html.dark .p-multiselect-option.p-focus {
+  background: var(--p-surface-100) !important;
+}
+
+html.dark .p-datepicker-panel {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-datepicker-panel .p-datepicker-header {
+  background: var(--p-surface-0) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-datepicker-day:hover {
+  background: var(--p-surface-100) !important;
+}
+
+/* SelectButton - PrimeVue 4 usa .p-selectbutton-option */
+html.dark .p-selectbutton,
+html.dark .p-togglebutton-group {
+  background: var(--p-surface-0) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-selectbutton-option,
+html.dark .p-togglebutton-group .p-togglebutton {
+  background: transparent !important;
+  color: var(--p-surface-700) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-selectbutton-option:hover {
+  background: var(--p-surface-100) !important;
+  color: var(--p-surface-900) !important;
+}
+
+html.dark .p-selectbutton-option.p-selectbutton-option-selected,
+html.dark .p-selectbutton-option[aria-pressed="true"],
+html.dark .p-selectbutton-option[aria-checked="true"] {
+  background: var(--p-surface-100) !important;
+  color: var(--p-surface-900) !important;
+  border-color: var(--p-surface-300) !important;
+}
+
+html.dark .p-paginator {
+  background: var(--p-surface-0) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+html.dark .p-paginator .p-paginator-page,
+html.dark .p-paginator .p-paginator-prev,
+html.dark .p-paginator .p-paginator-next,
+html.dark .p-paginator .p-paginator-first,
+html.dark .p-paginator .p-paginator-last {
+  color: var(--p-text-color) !important;
+}
+
+html.dark .p-paginator .p-paginator-page.p-highlight {
+  background: var(--p-primary-500) !important;
+  color: #fff !important;
+}
+
+/* Transição de página — entrada/saída suave */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}

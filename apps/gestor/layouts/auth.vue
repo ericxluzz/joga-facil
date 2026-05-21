@@ -4,8 +4,8 @@
     <div class="auth-left">
       <div class="auth-header">
         <div class="brand">
-          <i class="pi pi-calendar brand-icon"></i>
-          <span class="brand-name">Agenda-Slim</span>
+          <AppLogo :size="32" />
+          <span class="brand-name">Joga Fácil</span>
         </div>
       </div>
       
@@ -14,7 +14,7 @@
       </div>
 
       <div class="auth-footer">
-        <span>Copyright © 2026 Agenda-Slim. Todos os direitos reservados.</span>
+        <span>Copyright © 2026 Joga Fácil. Todos os direitos reservados.</span>
         <div class="footer-links">
           <a href="#">Termos de Uso</a>
           <span class="separator">•</span>

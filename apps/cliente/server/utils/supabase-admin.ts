@@ -1,6 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+let _adminClient: SupabaseClient | null = null;
 
 export function createSupabaseAdmin() {
+  if (_adminClient) return _adminClient;
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
@@ -8,10 +11,11 @@ export function createSupabaseAdmin() {
       'SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórios. Configure as variáveis de ambiente.',
     );
   }
-  return createClient(url, key, {
+  _adminClient = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: 'public' },
   });
+  return _adminClient;
 }
 
 export function mapTenant(row: Record<string, any>) {
@@ -53,6 +57,35 @@ export function mapBooking(row: Record<string, any>) {
     updatedAt: new Date(row.updated_at as string),
     confirmedAt: row.confirmed_at ? new Date(row.confirmed_at as string) : null,
     cancelledAt: row.cancelled_at ? new Date(row.cancelled_at as string) : null,
+  };
+}
+
+export function mapResource(row: Record<string, any>) {
+  return {
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    name: row.name as string,
+    type: row.type as string,
+    photoUrl: (row.photo_url as string | null) ?? null,
+    config: row.config as Record<string, any>,
+    active: row.active as boolean,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
+  };
+}
+
+export function mapService(row: Record<string, any>) {
+  return {
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    resourceId: (row.resource_id as string | null) ?? null,
+    name: row.name as string,
+    description: (row.description as string | null) ?? null,
+    durationMinutes: row.duration_minutes as number,
+    basePriceCents: row.base_price_cents as number,
+    active: row.active as boolean,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
   };
 }
 

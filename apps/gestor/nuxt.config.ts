@@ -2,9 +2,9 @@ import { agendaSlimPreset } from '@agendaslim/ui/preset';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Carrega .env local (apps/gestor ou raiz do monorepo) — na Vercel as vars vêm do painel
-dotenv.config({ path: path.resolve(__dirname, '.env') });
+// O .env do app tem SEMPRE prioridade sobre o .env raiz (override: true)
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env'), override: true });
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey =
@@ -26,7 +26,7 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
   ],
 
-  css: ['@agendaslim/ui/styles.css'],
+  css: ['@agendaslim/ui/styles.css', 'primeflex/primeflex.css'],
 
   primevue: {
     options: {
@@ -46,9 +46,9 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/login',
       callback: '/auth/callback',
-      include: process.env.MOCK_AUTH === '1' ? [] : ['/dashboard', '/configuracoes/**', '/agenda', '/financeiro', '/onboarding', '/aprovacoes'],
-      exclude: process.env.MOCK_AUTH === '1' 
-        ? ['/', '/login', '/cadastro', '/onboarding', '/dashboard', '/configuracoes/**', '/agenda', '/financeiro', '/aprovacoes'] 
+      include: process.env.MOCK_AUTH === '1' ? [] : ['/dashboard', '/painel', '/configuracoes/**', '/agenda', '/financeiro', '/onboarding', '/aprovacoes'],
+      exclude: process.env.MOCK_AUTH === '1'
+        ? ['/', '/login', '/cadastro', '/onboarding', '/dashboard', '/painel', '/configuracoes/**', '/agenda', '/financeiro', '/aprovacoes']
         : ['/', '/login', '/cadastro'],
     },
   },
@@ -57,9 +57,8 @@ export default defineNuxtConfig({
     // Server-only
     databaseUrl: process.env.DATABASE_URL,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    abacatepayApiKey: process.env.ABACATEPAY_API_KEY,
-    abacatepayWebhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
     resendApiKey: process.env.RESEND_API_KEY,
+    cronSecret: process.env.CRON_SECRET,
     validapayAccessToken: process.env.VALIDAPAY_ACCESS_TOKEN,
     validapayClientId: process.env.VALIDAPAY_CLIENT_ID,
     validapayClientSecret: process.env.VALIDAPAY_CLIENT_SECRET,
@@ -77,8 +76,9 @@ export default defineNuxtConfig({
   },
 
   app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
     head: {
-      title: 'Agenda-Slim · Gestor',
+      title: 'Joga Fácil · Gestor',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },

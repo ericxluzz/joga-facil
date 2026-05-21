@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
 
   const body = await readBody(event);
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
 
   const patch: Record<string, any> = { updated_at: new Date().toISOString() };
   if (body.name !== undefined) patch.name = body.name;

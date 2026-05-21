@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     if (elapsed > 7000 && status === 'pending') {
       const now = new Date();
       await applyProviderPaymentStatus({
-        provider: payment.provider === 'validapay' ? 'validapay' : 'abacatepay',
+        provider: 'validapay',
         providerPaymentId: payment.providerPaymentId,
         status: 'paid',
         paidAt: now,

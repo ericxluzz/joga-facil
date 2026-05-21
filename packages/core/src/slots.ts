@@ -40,6 +40,13 @@ export type AvailableSlot = {
   reason?: 'in_past' | 'min_advance' | 'max_advance' | 'blocked' | 'booked';
 };
 
+/** Postgres `time` vem como "HH:mm:ss" — date-fns precisa de "HH:mm". */
+function normalizeTimeString(time: string): string {
+  const parts = time.trim().split(':');
+  if (parts.length >= 2) return `${parts[0]!.padStart(2, '0')}:${parts[1]!.padStart(2, '0')}`;
+  return time;
+}
+
 export function getAvailableSlots(input: SlotInput): AvailableSlot[] {
   const {
     date,
@@ -68,11 +75,15 @@ export function getAvailableSlots(input: SlotInput): AvailableSlot[] {
 
   for (const rule of applicableRules) {
     // Constrói candidatos no time local, depois converte pra UTC
-    const ruleStart = parse(`${date} ${rule.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
-    const ruleEnd = parse(`${date} ${rule.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+    const ruleStart = parse(`${date} ${normalizeTimeString(rule.startTime)}`, 'yyyy-MM-dd HH:mm', new Date());
+    const ruleEnd = parse(`${date} ${normalizeTimeString(rule.endTime)}`, 'yyyy-MM-dd HH:mm', new Date());
+
+    if (durationMinutes <= 0 || stepMinutes <= 0) continue;
 
     let cursorLocal = ruleStart;
+    let guard = 0;
     while (true) {
+      if (++guard > 500) break;
       const slotEndLocal = addMinutes(cursorLocal, durationMinutes);
       if (isAfter(slotEndLocal, ruleEnd) && format(slotEndLocal, 'HH:mm') !== rule.endTime) break;
 

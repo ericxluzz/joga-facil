@@ -62,6 +62,7 @@ export const useReserva = () => {
         slots: items.map((s) => ({
           slotId: s.id,
           resourceId: s.resourceId,
+          serviceId: s.serviceId,
           startsAt: s.startsAt,
           endsAt: s.endsAt,
           priceCents: s.priceCents,
@@ -70,7 +71,7 @@ export const useReserva = () => {
     });
   }
 
-  async function checkout(slug: string, payload: { holdId: string; method: 'pix_upfront' | 'pay_on_site'; customer: any }) {
+  async function checkout(slug: string, payload: { bookingIds: string[]; method: 'pix_upfront' | 'pay_on_site'; customer: any }) {
     return await $fetch<any>(`/api/r/${slug}/checkout`, {
       method: 'POST',
       body: payload,

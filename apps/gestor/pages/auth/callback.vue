@@ -5,7 +5,7 @@ onMounted(async () => {
   // Supabase processa o token automaticamente via @nuxtjs/supabase
   // Aqui apenas redirecionamos para o destino
   await new Promise((r) => setTimeout(r, 800));
-  await navigateTo('/dashboard');
+  await navigateTo('/painel');
 });
 </script>
 

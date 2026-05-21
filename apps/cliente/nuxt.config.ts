@@ -1,8 +1,26 @@
 import { agendaSlimPreset } from '@agendaslim/ui/preset';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Carrega .env da raiz do monorepo (igual ao gestor)
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env'), override: true });
+
+const tenantSlug = process.env.NUXT_TENANT_SLUG;
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
-  devtools: { enabled: true },
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
+
+  // Nitro gera apps/cliente/.vercel/output (ver outputDirectory no vercel.json)
+  nitro: {
+    preset: 'vercel',
+  },
+
+  // Se NUXT_TENANT_SLUG estiver definido, redireciona / para /r/<slug>
+  routeRules: tenantSlug
+    ? { '/': { redirect: { to: `/r/${tenantSlug}`, statusCode: 301 } } }
+    : {},
 
   modules: [
     '@pinia/nuxt',
@@ -11,7 +29,7 @@ export default defineNuxtConfig({
     '@vite-pwa/nuxt',
   ],
 
-  css: ['@agendaslim/ui/styles.css'],
+  css: ['@agendaslim/ui/styles.css', 'primeflex/primeflex.css'],
 
   primevue: {
     options: {
@@ -28,8 +46,8 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'Agenda-Slim',
-      short_name: 'Agenda-Slim',
+      name: 'Joga Fácil',
+      short_name: 'Joga Fácil',
       description: 'Reserve quadras e horários sem fricção',
       theme_color: '#10B981',
       background_color: '#ffffff',
@@ -54,8 +72,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    abacatepayApiKey: process.env.ABACATEPAY_API_KEY,
-    abacatepayWebhookSecret: process.env.ABACATEPAY_WEBHOOK_SECRET,
     validapayAccessToken: process.env.VALIDAPAY_ACCESS_TOKEN,
     validapayClientId: process.env.VALIDAPAY_CLIENT_ID,
     validapayClientSecret: process.env.VALIDAPAY_CLIENT_SECRET,
@@ -73,7 +89,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Agenda-Slim',
+      title: 'Joga Fácil',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },

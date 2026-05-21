@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
   }
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const { data, error } = await admin.from('services').select('*').eq('tenant_id', tenant.id);
   if (error) throw createError({ statusCode: 500, message: error.message });
 

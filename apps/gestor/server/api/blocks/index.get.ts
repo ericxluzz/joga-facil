@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   const tenant = await getActiveTenant(event);
   if (!tenant) throw createError({ statusCode: 404, message: 'Estabelecimento não encontrado' });
 
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
   const { data, error } = await admin
     .from('blocks')
     .select('id, resource_id, starts_at, ends_at, reason, resources(name)')

@@ -14,16 +14,22 @@ export type TenantSettings = {
   cancellationPolicy: string;
 
   // Pagamentos
-  paymentProvider?: 'abacatepay' | 'validapay';
   platformFeeCents?: number;
   depositPercentage?: number;
+  /** @deprecated Use tenant_payment_accounts.validapay_account_number */
   validapayAccountId?: string;
+  /** @deprecated Use tenant_payment_accounts.status */
   paymentOnboardingStatus?: 'not_started' | 'pending' | 'approved' | 'rejected';
 
   // Branding mínimo do estabelecimento
   description?: string;
   whatsapp?: string;
   instagram?: string;
+
+  // Identidade visual (configurada no gestor)
+  primaryColor?: 'emerald' | 'blue' | 'orange' | 'red' | 'purple' | 'slate';
+  logoUrl?: string;
+  coverUrl?: string;
 };
 
 export const tenants = pgTable('tenants', {

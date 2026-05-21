@@ -20,16 +20,40 @@
           <div class="rule-fields">
             <div class="field-inline">
               <label>Abre</label>
-              <InputMask v-model="rule.startTime" mask="99:99" placeholder="08:00" class="time-input" />
+              <input
+                v-model="rule.startTime"
+                type="text"
+                class="plain-input"
+                placeholder="08:00"
+                maxlength="5"
+                @input="maskTime($event, rule, 'startTime')"
+              />
             </div>
             <div class="field-inline">
               <label>Fecha</label>
-              <InputMask v-model="rule.endTime" mask="99:99" placeholder="23:00" class="time-input" />
+              <input
+                v-model="rule.endTime"
+                type="text"
+                class="plain-input"
+                placeholder="23:00"
+                maxlength="5"
+                @input="maskTime($event, rule, 'endTime')"
+              />
             </div>
             <div class="field-inline">
               <label>Multiplicador</label>
-              <InputNumber v-model="rule.priceModifier" suffix="x"
-                :min="0.5" :max="3" :step="0.1" :minFractionDigits="1" class="modifier-input" />
+              <div class="modifier-wrap">
+                <input
+                  :value="rule.priceModifier"
+                  type="number"
+                  class="plain-input modifier-input"
+                  min="0.5"
+                  max="3"
+                  step="0.1"
+                  @change="rule.priceModifier = parseFloat(($event.target as HTMLInputElement).value) || 1"
+                />
+                <span class="modifier-x">x</span>
+              </div>
             </div>
             <Tag :value="modifierBadge(rule.priceModifier)" :severity="modifierSeverity(rule.priceModifier)" />
           </div>
@@ -47,8 +71,6 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import InputMask from 'primevue/inputmask';
-import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 
@@ -131,6 +153,15 @@ function removeRule(weekday: number, key: string) {
   localRules.value = localRules.value.filter((r) => r._key !== key);
 }
 
+// Formata automaticamente HH:MM enquanto o usuário digita
+function maskTime(event: Event, rule: any, field: 'startTime' | 'endTime') {
+  const input = event.target as HTMLInputElement;
+  let val = input.value.replace(/\D/g, '').slice(0, 4);
+  if (val.length >= 3) val = val.slice(0, 2) + ':' + val.slice(2);
+  rule[field] = val;
+  input.value = val;
+}
+
 function applyPreset() {
   localRules.value = [
     ...[1, 2, 3, 4, 5].map((w) => ({
@@ -183,8 +214,23 @@ function applyPreset() {
 
 .field-inline { display: flex; flex-direction: column; gap: 0.25rem; }
 .field-inline label { font-size: 0.7rem; color: var(--p-text-color-secondary); text-transform: uppercase; letter-spacing: 0.02em; }
-.time-input { width: 90px; }
-.modifier-input { width: 110px; }
+.plain-input {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--p-surface-300);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--p-text-color);
+  background: var(--p-surface-0);
+  outline: none;
+  width: 90px;
+  transition: border-color .15s;
+}
+.plain-input:focus { border-color: var(--p-primary-500); box-shadow: 0 0 0 2px color-mix(in srgb, var(--p-primary-500) 15%, transparent); }
+
+.modifier-wrap { display: flex; align-items: center; gap: 4px; }
+.modifier-input { width: 70px; }
+.modifier-x { font-size: 0.85rem; color: var(--p-text-color-secondary); font-weight: 600; }
 
 .quick-actions { margin-top: 1rem; }
 </style>

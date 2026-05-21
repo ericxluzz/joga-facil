@@ -16,10 +16,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'customer e slots obrigatórios' });
   }
 
-  // Pega o serviceId do primeiro slot (todos do mesmo recurso/serviço no MVP)
+  // Normaliza phone para apenas dígitos
+  body.customer.phone = String(body.customer.phone).replace(/\D/g, '');
+
+  // serviceId é opcional no MVP — usa o primeiro disponível ou fallback
   const firstSlot = body.slots[0];
-  const serviceId = firstSlot.serviceId;
-  if (!serviceId) throw createError({ statusCode: 400, message: 'serviceId obrigatório no slot' });
+  const serviceId = firstSlot.serviceId ?? null;
 
   const adapter = makeDbBookingAdapter(serviceId);
   const settings = (tenant.settings as any) || {};

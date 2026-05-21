@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event);
-  const admin = createSupabaseAdmin();
+  const admin = await createSupabaseAdmin(event);
 
   const updatedSettings = {
     ...(tenant.settings || {}),

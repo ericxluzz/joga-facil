@@ -1,4 +1,4 @@
-import { createPixCharge as createAbacatePixCharge, mapAbacateStatus } from '../abacate';
+// ValidaPay payment provider — server-side only.
 import type { CreateProviderPixChargeInput, ProviderPixCharge } from './types';
 
 function toRecord(value: unknown): Record<string, unknown> {
@@ -26,15 +26,22 @@ function getValidapayBaseUrl(): string {
     : 'https://sandbox.validapay.com.br';
 }
 
+// Simple in-memory token cache (reuses token until 5 min before expiry).
+let cachedToken: string | null = null;
+let tokenExpiresAt = 0;
+
 async function getValidapayToken(): Promise<string> {
   if (process.env.VALIDAPAY_ACCESS_TOKEN) return process.env.VALIDAPAY_ACCESS_TOKEN;
+
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiresAt) return cachedToken;
 
   const clientId = process.env.VALIDAPAY_CLIENT_ID;
   const clientSecret = process.env.VALIDAPAY_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     throw createError({
       statusCode: 500,
-      message: 'ValidaPay sem credenciais. Configure VALIDAPAY_ACCESS_TOKEN ou CLIENT_ID/CLIENT_SECRET.',
+      message: 'ValidaPay sem credenciais. Configure VALIDAPAY_CLIENT_ID e VALIDAPAY_CLIENT_SECRET.',
     });
   }
 
@@ -56,21 +63,24 @@ async function getValidapayToken(): Promise<string> {
   if (!token) {
     throw createError({ statusCode: 502, message: 'ValidaPay auth sem token na resposta.' });
   }
+
+  // Cache for (expires_in - 5 min) seconds, defaulting to 50 min.
+  const expiresIn = asNumber(json.expires_in) ?? asNumber(json.expiresIn) ?? 3600;
+  cachedToken = token;
+  tokenExpiresAt = now + (expiresIn - 300) * 1000;
   return token;
 }
 
 export function mapValidapayStatus(status: unknown): ProviderPixCharge['status'] {
   const normalized = String(status || '').toUpperCase();
-  if (['PAID', 'CONFIRMED', 'COMPLETED', 'SUCCESS', 'APPROVED'].includes(normalized)) {
-    return 'paid';
-  }
+  if (['PAID', 'CONFIRMED', 'COMPLETED', 'SUCCESS', 'APPROVED'].includes(normalized)) return 'paid';
   if (['EXPIRED', 'CANCELLED'].includes(normalized)) return 'expired';
   if (['REFUNDED', 'REFUND'].includes(normalized)) return 'refunded';
   if (['FAILED', 'REJECTED', 'ERROR'].includes(normalized)) return 'failed';
   return 'pending';
 }
 
-async function createValidapayPixCharge(
+export async function createProviderPixCharge(
   input: CreateProviderPixChargeInput,
 ): Promise<ProviderPixCharge> {
   const token = await getValidapayToken();
@@ -126,7 +136,6 @@ async function createValidapayPixCharge(
   const expiresAt = asString(data.expiresAt) || asString(data.expirationDate);
 
   return {
-    provider: 'validapay',
     providerPaymentId,
     providerAccountId: input.providerAccountId ?? null,
     amountCents:
@@ -150,35 +159,34 @@ async function createValidapayPixCharge(
   };
 }
 
-export async function createProviderPixCharge(
-  input: CreateProviderPixChargeInput,
-): Promise<ProviderPixCharge> {
-  if (input.provider === 'validapay') {
-    return createValidapayPixCharge(input);
+/** GET /v1/charges/:id — query payment status from ValidaPay. */
+export async function getValidapayChargeStatus(chargeId: string): Promise<ProviderPixCharge | null> {
+  try {
+    const token = await getValidapayToken();
+    const res = await fetch(`${getValidapayBaseUrl()}/v1/charges/${encodeURIComponent(chargeId)}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const data = toRecord(toRecord(json).data || json);
+    const id =
+      asString(data.id) ||
+      asString(data.chargeId) ||
+      asString(data.charge_id) ||
+      asString(data.uuid) ||
+      chargeId;
+    const expiresAt = asString(data.expiresAt) || asString(data.expirationDate);
+    return {
+      providerPaymentId: id,
+      providerAccountId: asString(data.accountId) ?? null,
+      amountCents: asNumber(data.amountCents) ?? asNumber(data.amount) ?? 0,
+      status: mapValidapayStatus(data.status),
+      pixQrCode: null,
+      pixCopiaCola: null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      rawPayload: json,
+    };
+  } catch {
+    return null;
   }
-
-  const charge = await createAbacatePixCharge({
-    amount: input.amountCents,
-    expiresIn: input.expiresInSeconds,
-    description: input.description,
-    customer: {
-      name: input.customer.name,
-      cellphone: input.customer.phone.replace(/\D/g, ''),
-      email: input.customer.email,
-      taxId: input.customer.taxId,
-    },
-    metadata: input.metadata,
-  });
-
-  return {
-    provider: 'abacatepay',
-    providerPaymentId: charge.id,
-    providerAccountId: null,
-    amountCents: charge.amount,
-    status: mapAbacateStatus(charge.status),
-    pixQrCode: charge.brCodeBase64,
-    pixCopiaCola: charge.brCode,
-    expiresAt: new Date(charge.expiresAt),
-    rawPayload: charge,
-  };
 }
